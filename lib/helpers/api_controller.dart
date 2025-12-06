@@ -30,7 +30,7 @@ class ApiController {
   Future<void> getAuxiliaries() async {
     try {
       // Get site_id from saved user info
-      final userInfo = await _loadUserInfo();
+      final userInfo = await loadUserInfo();
 
       if (userInfo == null || userInfo['site_id'] == null) {
         throw Exception('User info not found. Please login first.');
@@ -127,7 +127,7 @@ class ApiController {
   /// Create employee log
   Future<bool> createEmployeeLog(String sub) async {
     try {
-      final userInfo = await _loadUserInfo();
+      final userInfo = await loadUserInfo();
       if (userInfo == null || userInfo['id'] == null) {
         throw Exception('User info not found. Please login first.');
       }
@@ -160,7 +160,7 @@ class ApiController {
     try {
       final headers = await _headers();
       final idleStatus = isIdle ? "1" : "0";
-      final userInfo = await _loadUserInfo();
+      final userInfo = await loadUserInfo();
       if (userInfo == null || userInfo['id'] == null) {
         throw Exception('User info not found. Please login first.');
       }
@@ -191,7 +191,7 @@ class ApiController {
   }
 
   /// Load user info from SharedPreferences
-  Future<Map<String, dynamic>?> _loadUserInfo() async {
+  Future<Map<String, dynamic>?> loadUserInfo() async {
     final prefs = await SharedPreferences.getInstance();
     final userInfoString = prefs.getString('userInfo');
     if (userInfoString != null) {

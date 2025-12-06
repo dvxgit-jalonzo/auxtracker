@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
 
+import 'package:auxtrack/helpers/ffmpeg_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
@@ -252,8 +253,22 @@ class _ChangeAuxPageState extends State<ChangeAuxPage> with WindowListener {
       // TODO: Implement aux change confirmation API call
       if (mounted) {
         await ApiController.instance.createEmployeeLog(_selectedAux!['sub']);
+        final userInfo = await ApiController.instance.loadUserInfo();
+        if (userInfo == null || userInfo['id'] == null) {
+          throw Exception('User info not found. Please login first.');
+        }
         if (_selectedAux!['sub'] == "OFF") {
           _handleLogout();
+
+          if (userInfo['enable_screen_capture'] == 1) {
+            stopRecording();
+          }
+        }
+
+        if (_selectedAux!['sub'] == "Time In") {
+          if (userInfo['enable_screen_capture'] == 1) {
+            startRecording();
+          }
         }
         WindowsToast.show("Saved!", context, 30);
       }

@@ -44,6 +44,7 @@ dependencies:
   system_idle: ^2.0.0
   flutter_styled_toast: ^2.3.0
   msix: ^3.16.12
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:
