@@ -81,6 +81,7 @@ flutter_launcher_icons:
 flutter:
   assets :
     - assets/images/icon.png
+    - assets/ffmpeg/ffmpeg.exe
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

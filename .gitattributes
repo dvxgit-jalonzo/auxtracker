@@ -1,1 +1,2 @@
 windows/ffmpeg/ffmpeg.exe filter=lfs diff=lfs merge=lfs -text
+assets/ffmpeg/ffmpeg.exe filter=lfs diff=lfs merge=lfs -text

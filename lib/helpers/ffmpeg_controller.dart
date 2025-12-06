@@ -1,65 +1,117 @@
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
-import 'api_controller.dart';
+import 'api_controller.dart'; // your API to get user info
 
 Process? recorderProcess;
 
-/// Path to FFmpeg executable
-String get ffmpegPath {
-  final exeDir = Directory.current.path;
-  return '$exeDir/windows/ffmpeg/ffmpeg.exe';
+// --------------------------------------------------------
+// 1. Extract FFmpeg.exe from assets → LocalAppData directory
+// --------------------------------------------------------
+Future<String> ensureFfmpegInstalled() async {
+  final localAppData = Platform.environment['LOCALAPPDATA']!;
+  final ffmpegDir = Directory('$localAppData\\AuxTracker\\ffmpeg');
+
+  if (!ffmpegDir.existsSync()) {
+    ffmpegDir.createSync(recursive: true);
+  }
+
+  final ffmpegExe = File('${ffmpegDir.path}\\ffmpeg.exe');
+
+  // Only copy if missing
+  if (!ffmpegExe.existsSync()) {
+    print("Extracting FFmpeg to ${ffmpegExe.path}…");
+
+    final data = await rootBundle.load('assets/ffmpeg/ffmpeg.exe');
+    final bytes = data.buffer.asUint8List();
+    await ffmpegExe.writeAsBytes(bytes, flush: true);
+
+    print("FFmpeg installed.");
+  }
+
+  return ffmpegExe.path;
 }
 
-/// Path to the output recording in the user's Videos\AuxTracker folder
-Future<String> outputPath() async {
-  final videosDir = Directory(
+// --------------------------------------------------------
+// 2. Build output path in Videos/AuxTracker
+// --------------------------------------------------------
+Future<String> buildOutputPath() async {
+  final userVideos = Directory(
     '${Platform.environment['USERPROFILE']}\\Videos\\AuxTracker',
   );
-  if (!videosDir.existsSync()) {
-    videosDir.createSync(recursive: true);
+  if (!userVideos.existsSync()) {
+    userVideos.createSync(recursive: true);
   }
+
   final userInfo = await ApiController.instance.loadUserInfo();
   if (userInfo == null || userInfo['id'] == null) {
-    throw Exception('User info not found. Please login first.');
+    throw Exception('User info not found. Login first.');
   }
 
   final timestamp = DateFormat('yyyyMMddHHmmss').format(DateTime.now());
-  return '${videosDir.path}\\${userInfo['id']}-$timestamp.mp4';
+  return '${userVideos.path}\\${userInfo['id']}-$timestamp.mp4';
 }
 
+// --------------------------------------------------------
+// 3. Start Recording
+// --------------------------------------------------------
 Future<void> startRecording() async {
-  final path = ffmpegPath;
-  print('FFmpeg path: $path');
-  final filename = await outputPath();
-  print('Recording output path: $filename');
-  recorderProcess = await Process.start(path, [
-    '-y',
-    '-f', 'gdigrab',
-    '-framerate', '30',
-    '-i', 'desktop',
-    '-vcodec', 'libx264', // Use H.264 codec
-    '-preset', 'veryfast', // Balance speed vs compression
-    '-crf', '28', // Lower CRF = higher quality, higher storage
-    '-pix_fmt', 'yuv420p',
-    filename,
-  ], runInShell: true);
+  try {
+    final ffmpeg = await ensureFfmpegInstalled();
+    final output = await buildOutputPath();
 
-  recorderProcess!.stderr.transform(SystemEncoding().decoder).listen((data) {
-    print("FFmpeg: $data");
-  });
+    print("FFmpeg path: $ffmpeg");
+    print("Saving recording to: $output");
 
-  print("Recording started…");
+    recorderProcess = await Process.start(ffmpeg, [
+      '-y',
+      '-f',
+      'gdigrab',
+      '-framerate',
+      '30',
+      '-i',
+      'desktop',
+      '-vcodec',
+      'libx264',
+      '-preset',
+      'veryfast',
+      '-crf',
+      '28',
+      '-pix_fmt',
+      'yuv420p',
+      output,
+    ], runInShell: true);
+
+    recorderProcess!.stderr
+        .transform(SystemEncoding().decoder)
+        .listen((data) => print("FFmpeg: $data"));
+
+    print("Recording started.");
+  } catch (e) {
+    print("Error starting recording: $e");
+  }
 }
 
+// --------------------------------------------------------
+// 4. Stop Recording
+// --------------------------------------------------------
 Future<void> stopRecording() async {
-  if (recorderProcess != null) {
-    print("Stopping recording…");
-    // send 'q' to FFmpeg's stdin to stop recording properly
-    recorderProcess!.stdin.write('q');
-    await recorderProcess!.exitCode; // wait until process fully exits
-    recorderProcess = null;
-    print("Recording stopped.");
+  if (recorderProcess == null) {
+    print("No active recording.");
+    return;
   }
+
+  print("Stopping recording…");
+
+  try {
+    recorderProcess!.stdin.write('q');
+    await recorderProcess!.exitCode;
+    print("Recording stopped.");
+  } catch (e) {
+    print("Error stopping recording: $e");
+  }
+
+  recorderProcess = null;
 }
