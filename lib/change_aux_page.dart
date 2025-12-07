@@ -28,6 +28,19 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   Map<String, dynamic>? _selectedAux;
   TabController? _tabController;
 
+  void _dismissStatus() {
+    setState(() {
+      _currentStatus = null; // Setting to null hides the widget
+    });
+  }
+
+  @override
+  void onWindowClose() async {
+    // Prevent default close behavior
+    // Instead, hide to system tray
+    await windowManager.hide();
+  }
+
   StreamSubscription<bool>? _idleSubscription;
   String? _currentStatus;
   @override
@@ -518,6 +531,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
@@ -529,182 +543,246 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
           ),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (_currentStatus != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    margin: const EdgeInsets.only(bottom: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade600.withOpacity(0.8),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      'Personal Brake has been $_currentStatus',
-                      style: const TextStyle(
+          child: Stack(
+            // Use a Stack to overlay the status indicator at the top
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Original Title (moved up)
+                    const Text(
+                      'Select Auxiliary',
+                      style: TextStyle(
                         color: Colors.white,
+                        fontSize: 14,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ),
-                // Title
-                const Text(
-                  'Select Auxiliary',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
+                    const SizedBox(height: 8),
 
-                // Replace your entire TabBar section with this:
-                if (_tabController != null)
-                  Container(
-                    height: 42, // Smaller height
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.white.withOpacity(0.15)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.25),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: Listener(
-                        onPointerSignal: (event) {
-                          if (event is PointerScrollEvent) {
-                            // Handle mouse wheel scroll - switches tabs
-                            final scrollOffset = event.scrollDelta.dy;
-
-                            if (scrollOffset > 0 &&
-                                _tabController!.index <
-                                    _tabController!.length - 1) {
-                              _tabController!.animateTo(
-                                _tabController!.index + 1,
-                              );
-                            } else if (scrollOffset < 0 &&
-                                _tabController!.index > 0) {
-                              _tabController!.animateTo(
-                                _tabController!.index - 1,
-                              );
-                            }
-                          }
-                        },
-                        child: MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: TabBar(
-                            controller: _tabController,
-                            isScrollable: true,
-                            tabAlignment: TabAlignment.start,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 3,
-                              vertical: 3,
-                            ),
-                            indicatorSize: TabBarIndicatorSize.tab,
-                            dividerColor: Colors.transparent,
-                            indicator: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Colors.blue.shade400,
-                                  Colors.blue.shade600,
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.greenAccent.withOpacity(0.3),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            labelColor: Colors.white,
-                            unselectedLabelColor: Colors.white.withOpacity(0.5),
-                            labelStyle: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.3,
-                            ),
-                            unselectedLabelStyle: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: 0.2,
-                            ),
-                            tabs: _auxiliariesByCategory.keys.map((category) {
-                              return Tab(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        _getCategoryIcon(category),
-                                        size: 14,
-                                      ),
-                                      const SizedBox(width: 5),
-                                      Text(category),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            }).toList(),
+                    // The rest of your content (TabBar, TabBarView, etc.)
+                    if (_tabController != null)
+                      Container(
+                        // ... (Your TabBar code) ...
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.15),
                           ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.25),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Listener(
+                            onPointerSignal: (event) {
+                              if (event is PointerScrollEvent) {
+                                // Handle mouse wheel scroll - switches tabs
+                                final scrollOffset = event.scrollDelta.dy;
+
+                                if (scrollOffset > 0 &&
+                                    _tabController!.index <
+                                        _tabController!.length - 1) {
+                                  _tabController!.animateTo(
+                                    _tabController!.index + 1,
+                                  );
+                                } else if (scrollOffset < 0 &&
+                                    _tabController!.index > 0) {
+                                  _tabController!.animateTo(
+                                    _tabController!.index - 1,
+                                  );
+                                }
+                              }
+                            },
+                            child: MouseRegion(
+                              cursor: SystemMouseCursors.click,
+                              child: TabBar(
+                                controller: _tabController,
+                                isScrollable: true,
+                                tabAlignment: TabAlignment.start,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 3,
+                                  vertical: 3,
+                                ),
+                                indicatorSize: TabBarIndicatorSize.tab,
+                                dividerColor: Colors.transparent,
+                                indicator: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      Colors.blue.shade400,
+                                      Colors.blue.shade600,
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.greenAccent.withOpacity(
+                                        0.3,
+                                      ),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                labelColor: Colors.white,
+                                unselectedLabelColor: Colors.white.withOpacity(
+                                  0.5,
+                                ),
+                                labelStyle: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.3,
+                                ),
+                                unselectedLabelStyle: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                  letterSpacing: 0.2,
+                                ),
+                                tabs: _auxiliariesByCategory.keys.map((
+                                  category,
+                                ) {
+                                  return Tab(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            _getCategoryIcon(category),
+                                            size: 14,
+                                          ),
+                                          const SizedBox(width: 5),
+                                          Text(category),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                    const SizedBox(height: 8),
+
+                    Expanded(
+                      child: _tabController == null
+                          ? Center(
+                              child: Text(
+                                'No auxiliaries available',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.7),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            )
+                          : Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.3),
+                                ),
+                              ),
+                              child: TabBarView(
+                                controller: _tabController,
+                                children: _auxiliariesByCategory.entries
+                                    .map(
+                                      (entry) =>
+                                          _buildAuxiliaryList(entry.value),
+                                    )
+                                    .toList(),
+                              ),
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // --- NEW: Status Indicator Overlay ---
+              if (_currentStatus != null)
+                Positioned(
+                  top: 20, // Sit slightly below the very top edge
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: GestureDetector(
+                      // Added GestureDetector for dismiss
+                      onTap: _dismissStatus, // Call the new dismiss method
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          // --- UPDATED: Deep Purple/Magenta Gradient ---
+                          gradient: LinearGradient(
+                            colors: [
+                              const Color(
+                                0xFF9C27B0,
+                              ).withOpacity(0.95), // Deep Purple
+                              const Color(
+                                0xFFE91E63,
+                              ).withOpacity(0.95), // Magenta/Pink
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.4),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.notifications_active_rounded,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Personal Brake has been $_currentStatus',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            // Subtle close indicator
+                            Icon(
+                              Icons.close,
+                              color: Colors.white.withOpacity(0.7),
+                              size: 16,
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ),
-
-                const SizedBox(height: 8),
-
-                // Tab Content
-                Expanded(
-                  child: _tabController == null
-                      ? Center(
-                          child: Text(
-                            'No auxiliaries available',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.7),
-                              fontSize: 12,
-                            ),
-                          ),
-                        )
-                      : Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.3),
-                            ),
-                          ),
-                          child: TabBarView(
-                            controller: _tabController,
-                            children: _auxiliariesByCategory.entries
-                                .map(
-                                  (entry) => _buildAuxiliaryList(entry.value),
-                                )
-                                .toList(),
-                          ),
-                        ),
                 ),
-              ],
-            ),
+            ],
           ),
         ),
       ),

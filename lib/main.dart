@@ -37,6 +37,7 @@ void main() async {
 
   await windowManager.setMaximizable(false);
   await windowManager.setResizable(false);
+  await windowManager.setPreventClose(true);
   await windowManager.setClosable(true);
 
   // Initialize system tray
@@ -141,8 +142,8 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> with WindowListener {
   final _formKey = GlobalKey<FormState>();
-  final _usernameController = TextEditingController(text: "admin");
-  final _passwordController = TextEditingController(text: "admin123");
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
 
