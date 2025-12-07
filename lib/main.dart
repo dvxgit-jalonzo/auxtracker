@@ -8,6 +8,7 @@ import 'package:windows_toast/windows_toast.dart';
 
 import 'change_aux_page.dart';
 import 'helpers/api_controller.dart';
+import 'helpers/recording_service.dart';
 
 // Global system tray instance
 final SystemTray systemTray = SystemTray();
@@ -42,7 +43,18 @@ void main() async {
 
   // Initialize system tray
   await initSystemTray();
+  final recorder = VideoRecorderController();
 
+  // Start recording
+  await recorder.startRecording();
+
+  print('Recording in progress...');
+
+  // Wait 10 seconds for demo purposes
+  await Future.delayed(Duration(seconds: 10));
+
+  // Stop recording
+  await recorder.stopRecording();
   runApp(const MyApp());
 }
 
