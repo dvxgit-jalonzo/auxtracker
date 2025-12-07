@@ -1,10 +1,16 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:system_tray/system_tray.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:windows_toast/windows_toast.dart';
 
 import 'change_aux_page.dart';
 import 'helpers/api_controller.dart';
+
+// Global system tray instance
+final SystemTray systemTray = SystemTray();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +26,7 @@ void main() async {
     titleBarStyle: TitleBarStyle.normal,
     windowButtonVisibility: true,
     skipTaskbar: false,
+    alwaysOnTop: true,
   );
 
   await windowManager.waitUntilReadyToShow(windowOptions, () async {});
@@ -27,12 +34,75 @@ void main() async {
   await windowManager.focus();
 
   await windowManager.setMinimizable(true);
-  await windowManager.setPreventClose(true);
 
   await windowManager.setMaximizable(false);
   await windowManager.setResizable(false);
   await windowManager.setClosable(true);
+
+  // Initialize system tray
+  await initSystemTray();
+
   runApp(const MyApp());
+}
+
+Future<void> initSystemTray() async {
+  try {
+    // Get the executable directory for the icon
+    String path = Platform.resolvedExecutable;
+    List<String> pathSegments = path.split(Platform.pathSeparator)
+      ..removeLast();
+    String iconPath =
+        '${pathSegments.join(Platform.pathSeparator)}${Platform.pathSeparator}data${Platform.pathSeparator}flutter_assets${Platform.pathSeparator}assets${Platform.pathSeparator}images${Platform.pathSeparator}icon.ico';
+
+    // Try to initialize with icon, if fails, try without icon
+    try {
+      await systemTray.initSystemTray(
+        title: "AuxTrack",
+        iconPath: iconPath,
+        toolTip: "AuxTrack - Click to open",
+      );
+    } catch (e) {
+      print('Failed to load icon, initializing without icon: $e');
+      // Initialize without icon if icon loading fails
+    }
+
+    // Create context menu
+    final Menu menu = Menu();
+    await menu.buildFrom([
+      MenuItemLabel(
+        label: 'Show Window',
+        onClicked: (menuItem) async {
+          await windowManager.show();
+          await windowManager.focus();
+        },
+      ),
+      MenuSeparator(),
+      MenuItemLabel(
+        label: 'Exit',
+        onClicked: (menuItem) async {
+          await windowManager.destroy();
+          exit(0);
+        },
+      ),
+    ]);
+
+    await systemTray.setContextMenu(menu);
+
+    // Handle left click on tray icon
+    systemTray.registerSystemTrayEventHandler((eventName) {
+      if (eventName == kSystemTrayEventClick) {
+        // Left click - show window
+        windowManager.show();
+        windowManager.focus();
+      } else if (eventName == kSystemTrayEventRightClick) {
+        // Right click - show context menu (handled automatically)
+        systemTray.popUpContextMenu();
+      }
+    });
+  } catch (e) {
+    print('System tray initialization error: $e');
+    // Continue without system tray if it fails
+  }
 }
 
 class MyApp extends StatefulWidget {
@@ -45,7 +115,6 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
   }
 
@@ -91,6 +160,14 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
     super.dispose();
   }
 
+  // THIS IS THE KEY PART - Handle window close event
+  @override
+  void onWindowClose() async {
+    // Prevent default close behavior
+    // Instead, hide to system tray
+    await windowManager.hide();
+  }
+
   void _handleLogin() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
@@ -111,7 +188,6 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
             final accessToken = prefs.getString("accessToken");
 
             if (accessToken != null && accessToken.isNotEmpty) {
-              // Token exists → proceed to next page
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (context) => const ChangeAuxPage()),
@@ -294,25 +370,43 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
                     // Login Button
                     SizedBox(
                       width: double.infinity,
-                      height: 50,
+                      height: 40,
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _handleLogin,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: Colors.deepPurple.shade700,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                        style: ButtonStyle(
+                          padding: MaterialStateProperty.all(
+                            const EdgeInsets.symmetric(
+                              vertical: 14,
+                              horizontal: 24,
+                            ),
                           ),
-                          elevation: 5,
+                          shape: MaterialStateProperty.all(
+                            RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          elevation: MaterialStateProperty.all(6),
+                          backgroundColor:
+                              MaterialStateProperty.resolveWith<Color>((
+                                states,
+                              ) {
+                                if (states.contains(MaterialState.disabled)) {
+                                  return Colors.blue.shade300;
+                                }
+                                return Colors.blue.shade900;
+                              }),
+                          shadowColor: MaterialStateProperty.all(
+                            Colors.deepPurpleAccent.withOpacity(0.4),
+                          ),
                         ),
                         child: _isLoading
                             ? const SizedBox(
-                                height: 20,
-                                width: 20,
+                                height: 24,
+                                width: 24,
                                 child: CircularProgressIndicator(
-                                  strokeWidth: 2,
+                                  strokeWidth: 3,
                                   valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.deepPurple,
+                                    Colors.white,
                                   ),
                                 ),
                               )
@@ -321,6 +415,8 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  letterSpacing: 1.2,
                                 ),
                               ),
                       ),

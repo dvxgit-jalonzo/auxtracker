@@ -28,7 +28,7 @@ class IdleService {
   bool _isInitialized = false;
 
   // Configuration
-  static const Duration idleThreshold = Duration(seconds: 5);
+  static const Duration idleThreshold = Duration(minutes: 5);
   static const Duration checkInterval = Duration(seconds: 1);
 
   /// Initialize the idle service

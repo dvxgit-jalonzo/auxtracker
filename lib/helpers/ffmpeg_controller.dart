@@ -1,53 +1,43 @@
 import 'dart:io';
 
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
-import 'api_controller.dart'; // your API to get user info
+import 'api_controller.dart';
 
 Process? recorderProcess;
 
 // --------------------------------------------------------
-// 1. Extract FFmpeg.exe from assets → LocalAppData directory
+// 1. Get FFmpeg path from installation folder
 // --------------------------------------------------------
-Future<String> ensureFfmpegInstalled() async {
-  final localAppData = Platform.environment['LOCALAPPDATA']!;
-  final ffmpegDir = Directory('$localAppData\\AuxTracker\\ffmpeg');
+String get ffmpegPath {
+  // Use executable directory (where the EXE is installed)
+  final exeDir = File(Platform.resolvedExecutable).parent.path;
+  final ffmpegExe = '$exeDir\\ffmpeg.exe';
 
-  if (!ffmpegDir.existsSync()) {
-    ffmpegDir.createSync(recursive: true);
+  if (!File(ffmpegExe).existsSync()) {
+    throw Exception(
+      'FFmpeg not found at $ffmpegExe. Make sure it is installed with the app.',
+    );
   }
 
-  final ffmpegExe = File('${ffmpegDir.path}\\ffmpeg.exe');
-
-  // Only copy if missing
-  if (!ffmpegExe.existsSync()) {
-    print("Extracting FFmpeg to ${ffmpegExe.path}…");
-
-    final data = await rootBundle.load('assets/ffmpeg/ffmpeg.exe');
-    final bytes = data.buffer.asUint8List();
-    await ffmpegExe.writeAsBytes(bytes, flush: true);
-
-    print("FFmpeg installed.");
-  }
-
-  return ffmpegExe.path;
+  return ffmpegExe;
 }
 
 // --------------------------------------------------------
-// 2. Build output path in Videos/AuxTracker
+// 2. Build output path in Videos\AuxTracker
 // --------------------------------------------------------
 Future<String> buildOutputPath() async {
   final userVideos = Directory(
     '${Platform.environment['USERPROFILE']}\\Videos\\AuxTracker',
   );
+
   if (!userVideos.existsSync()) {
     userVideos.createSync(recursive: true);
   }
 
   final userInfo = await ApiController.instance.loadUserInfo();
   if (userInfo == null || userInfo['id'] == null) {
-    throw Exception('User info not found. Login first.');
+    throw Exception('User info not found. Please login first.');
   }
 
   final timestamp = DateFormat('yyyyMMddHHmmss').format(DateTime.now());
@@ -59,11 +49,11 @@ Future<String> buildOutputPath() async {
 // --------------------------------------------------------
 Future<void> startRecording() async {
   try {
-    final ffmpeg = await ensureFfmpegInstalled();
+    final ffmpeg = ffmpegPath;
     final output = await buildOutputPath();
 
     print("FFmpeg path: $ffmpeg");
-    print("Saving recording to: $output");
+    print("Recording output path: $output");
 
     recorderProcess = await Process.start(ffmpeg, [
       '-y',
@@ -88,7 +78,7 @@ Future<void> startRecording() async {
         .transform(SystemEncoding().decoder)
         .listen((data) => print("FFmpeg: $data"));
 
-    print("Recording started.");
+    print("Recording started...");
   } catch (e) {
     print("Error starting recording: $e");
   }
@@ -103,7 +93,7 @@ Future<void> stopRecording() async {
     return;
   }
 
-  print("Stopping recording…");
+  print("Stopping recording...");
 
   try {
     recorderProcess!.stdin.write('q');

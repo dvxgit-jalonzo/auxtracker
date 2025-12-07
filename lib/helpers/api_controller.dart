@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:auxtrack/helpers/ffmpeg_controller.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -9,7 +8,9 @@ class ApiController {
   ApiController._privateConstructor();
   static final ApiController instance = ApiController._privateConstructor();
 
-  final String baseUrl = 'http://127.0.0.1:8000/api';
+  static const String host = "127.0.0.1:8000";
+  final String baseUrl = 'http://$host/api';
+
   String? _accessToken;
 
   /// Load token from SharedPreferences
@@ -35,20 +36,16 @@ class ApiController {
       if (userInfo == null || userInfo['site_id'] == null) {
         throw Exception('User info not found. Please login first.');
       }
+      final siteId = userInfo['site_id'].toString();
 
-      final siteId = userInfo['site_id'];
+      Map<String, dynamic> params = {"site_id": siteId};
 
       final headers = await _headers();
-      final url = Uri.parse('$baseUrl/get-auxiliaries');
-
-      final response = await http.post(
-        url,
-        headers: headers,
-        body: jsonEncode({'site_id': siteId}),
-      );
+      final url = Uri.http(host, '/api/get-auxiliaries', params);
+      final response = await http.get(url, headers: headers);
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body); // Changed to List
+        final data = jsonDecode(response.body);
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('auxiliaries', jsonEncode(data));
         print('Auxiliaries fetched and saved to local storage successfully.');
@@ -112,7 +109,7 @@ class ApiController {
 
       ApiController.instance.clearToken();
 
-      stopRecording();
+      // stopRecording();
 
       print("All local storage cleared. Background service stopped.");
     } catch (e) {
@@ -151,6 +148,42 @@ class ApiController {
       }
     } catch (e) {
       print('Error creating employee log: $e');
+      return false;
+    }
+  }
+
+  Future<bool> createPersonalBreak(String reason) async {
+    try {
+      final headers = await _headers();
+      final userInfo = await loadUserInfo();
+      if (userInfo == null || userInfo['id'] == null) {
+        throw Exception('User info not found. Please login first.');
+      }
+      final employeeId = userInfo['id'];
+      final siteId = userInfo['site_id'];
+      final url = Uri.parse('$baseUrl/create-personal-break');
+
+      Map<String, dynamic> params = {
+        "site_id": siteId,
+        "employee_id": employeeId,
+        "reason": reason,
+      };
+
+      final response = await http.post(
+        url,
+        headers: headers,
+        body: jsonEncode(params),
+      );
+
+      if (response.statusCode != 200) {
+        print(
+          'Failed to create personal break. Status: ${response.statusCode}, Body: ${response.body}',
+        );
+      }
+      print('Personal break created successfully.');
+      return true;
+    } catch (e) {
+      print('Error creating personal break: $e');
       return false;
     }
   }
