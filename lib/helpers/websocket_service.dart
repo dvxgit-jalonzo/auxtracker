@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:auxtrack/helpers/api_controller.dart';
 import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -42,6 +43,14 @@ class WebSocketService {
     try {
       debugPrint("Websocket Connecting...");
 
+      final userInfo = await ApiController.instance.loadUserInfo();
+
+      if (userInfo == null || userInfo['id'] == null) {
+        throw Exception('websocket User info not found. Please login first.');
+      }
+
+      final employeeId = userInfo['id'];
+
       _channel = IOWebSocketChannel.connect(
         Uri.parse(
           'ws://$_androidHost/app/$_reverbAppKey?protocol=7&client=js&version=4.4.0&flash=false',
@@ -52,7 +61,7 @@ class WebSocketService {
       _channel!.sink.add(
         json.encode({
           "event": "pusher:subscribe",
-          "data": {"channel": "personalBreakResponseEvent"},
+          "data": {"channel": "personalBreakResponseEvent$employeeId"},
         }),
       );
 

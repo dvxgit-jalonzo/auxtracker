@@ -8,7 +8,6 @@ import 'package:windows_toast/windows_toast.dart';
 
 import 'change_aux_page.dart';
 import 'helpers/api_controller.dart';
-import 'helpers/recording_service.dart';
 
 // Global system tray instance
 final SystemTray systemTray = SystemTray();
@@ -24,7 +23,7 @@ void main() async {
   WindowOptions windowOptions = const WindowOptions(
     size: Size(windowWidth, windowHeight),
     center: true,
-    titleBarStyle: TitleBarStyle.normal,
+    titleBarStyle: TitleBarStyle.hidden,
     windowButtonVisibility: true,
     skipTaskbar: false,
     alwaysOnTop: true,
@@ -43,18 +42,7 @@ void main() async {
 
   // Initialize system tray
   await initSystemTray();
-  final recorder = VideoRecorderController();
 
-  // Start recording
-  await recorder.startRecording();
-
-  print('Recording in progress...');
-
-  // Wait 10 seconds for demo purposes
-  await Future.delayed(Duration(seconds: 10));
-
-  // Stop recording
-  await recorder.stopRecording();
   runApp(const MyApp());
 }
 
@@ -154,8 +142,8 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> with WindowListener {
   final _formKey = GlobalKey<FormState>();
-  final _usernameController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final _usernameController = TextEditingController(text: "admin");
+  final _passwordController = TextEditingController(text: "admin123");
   bool _isPasswordVisible = false;
   bool _isLoading = false;
 
