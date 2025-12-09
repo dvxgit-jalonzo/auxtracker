@@ -1,9 +1,7 @@
-
+import 'package:elegant_notification/elegant_notification.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import 'package:window_manager/window_manager.dart';
-import 'package:windows_toast/windows_toast.dart';
 
 import 'change_aux_page.dart';
 import 'helpers/api_controller.dart';
@@ -26,19 +24,20 @@ void main() async {
     windowButtonVisibility: false,
     skipTaskbar: false,
     alwaysOnTop: true,
-    title: "Auxiliary Tracker"
+    title: "Auxiliary Tracker",
   );
 
-  await windowManager.waitUntilReadyToShow(windowOptions, () async {});
-  await windowManager.show();
-  await windowManager.focus();
+  await windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.show();
+    await windowManager.focus();
 
-  await windowManager.setMinimizable(true);
+    await windowManager.setMinimizable(true);
 
-  await windowManager.setMaximizable(false);
-  await windowManager.setResizable(false);
-  await windowManager.setPreventClose(false);
-  await windowManager.setClosable(true);
+    await windowManager.setMaximizable(false);
+    await windowManager.setResizable(false);
+    await windowManager.setPreventClose(false);
+    await windowManager.setClosable(true);
+  });
 
   // Initialize system tray
   // await initSystemTray();
@@ -153,7 +152,6 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
     windowManager.addListener(this);
   }
 
-
   @override
   void dispose() {
     windowManager.removeListener(this);
@@ -184,7 +182,10 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
 
         if (success) {
           if (mounted) {
-            WindowsToast.show("Login Successfully", context, 30);
+            ElegantNotification.success(
+              title: Text("Success"),
+              description: Text("Login Successful"),
+            ).show(context);
             final prefs = await SharedPreferences.getInstance();
 
             final accessToken = prefs.getString("accessToken");
