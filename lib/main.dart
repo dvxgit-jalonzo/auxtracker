@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:auxtrack/helpers/periodic_capture_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:system_tray/system_tray.dart';
@@ -142,15 +143,17 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> with WindowListener {
   final _formKey = GlobalKey<FormState>();
-  final _usernameController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final _usernameController = TextEditingController(text: "admin");
+  final _passwordController = TextEditingController(text: "admin123");
   bool _isPasswordVisible = false;
   bool _isLoading = false;
+  final capturer = PeriodicCaptureController();
 
   @override
   void initState() {
     super.initState();
     windowManager.addListener(this);
+    capturer.startCapturing(seconds: 5);
   }
 
   @override
@@ -170,6 +173,7 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
   }
 
   void _handleLogin() async {
+    capturer.stopCapturing();
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
 

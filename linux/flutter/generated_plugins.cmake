@@ -4,6 +4,7 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   flutter_screen_capture
+  screen_capturer_linux
   screen_retriever_linux
   system_tray
   window_manager

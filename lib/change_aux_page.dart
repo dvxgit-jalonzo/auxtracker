@@ -11,6 +11,7 @@ import 'package:windows_toast/windows_toast.dart';
 
 import 'helpers/api_controller.dart';
 import 'helpers/idle_service.dart';
+import 'helpers/recording_service.dart';
 import 'main.dart';
 import 'models/auxiliary.dart';
 
@@ -27,6 +28,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   Map<String, List<Auxiliary>> _auxiliariesByCategory = {};
   Map<String, dynamic>? _selectedAux;
   TabController? _tabController;
+  final recorder = VideoRecorderController();
 
   void _dismissStatus() {
     setState(() {
@@ -67,6 +69,49 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
         });
       }
     });
+
+    _createEmployeeLogTimeIn();
+    _startScreenRecording();
+  }
+
+  void _startScreenRecording() async {
+    final userInfo = await ApiController.instance.loadUserInfo();
+    if (userInfo == null || userInfo['id'] == null) {
+      throw Exception(
+        'start recording User info not found. Please login first.',
+      );
+    }
+    final isEnableScreenCapture = userInfo['enable_screen_capture'];
+    if (isEnableScreenCapture == 1) {
+      try {
+        await recorder.startRecording();
+      } catch (e) {
+        print('Error starting screen recording: $e');
+      }
+    }
+  }
+
+  void _stopScreenRecording() async {
+    final userInfo = await ApiController.instance.loadUserInfo();
+    if (userInfo == null || userInfo['id'] == null) {
+      throw Exception(
+        'stop recording User info not found. Please login first.',
+      );
+    }
+    final isEnableScreenCapture = userInfo['enable_screen_capture'];
+    if (isEnableScreenCapture == 1) {
+      try {
+        await recorder.stopRecording();
+        print('Stop command sent');
+      } catch (e) {
+        print('Error stopping screen recording: $e');
+      }
+    }
+  }
+
+  void _createEmployeeLogTimeIn() async {
+    await ApiController.instance.createEmployeeLog("Time In");
+    print("Time In already sent to the server");
   }
 
   @override
@@ -75,6 +120,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     _idleSubscription?.cancel();
     _tabController?.dispose();
     WebSocketService().disconnect();
+    _stopScreenRecording();
     super.dispose();
   }
 
@@ -138,11 +184,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     setState(() => _isLoading = true);
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
-
       await ApiController.instance.logout();
-
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -510,27 +552,20 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
         await ApiController.instance.createEmployeeLog(_selectedAux!['sub']);
         final userInfo = await ApiController.instance.loadUserInfo();
         if (userInfo == null || userInfo['id'] == null) {
-          throw Exception('User info not found. Please login first.');
+          throw Exception(
+            'change aux User info not found. Please login first.',
+          );
         }
         if (_selectedAux!['sub'] == "OFF") {
+          _stopScreenRecording();
           _handleLogout();
-
-          if (userInfo['enable_screen_capture'] == 1) {
-            // stopRecording();
-          }
         }
 
-        if (_selectedAux!['sub'] == "Time In") {
-          if (userInfo['enable_screen_capture'] == 1) {
-            // startRecording();
-          }
-        }
         WindowsToast.show("Saved!", context, 30);
       }
     }
   }
 
-  @override
   @override
   Widget build(BuildContext context) {
     return Scaffold(

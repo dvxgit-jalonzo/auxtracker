@@ -34,7 +34,9 @@ class ApiController {
       final userInfo = await loadUserInfo();
 
       if (userInfo == null || userInfo['site_id'] == null) {
-        throw Exception('User info not found. Please login first.');
+        throw Exception(
+          'get auxiliaries User info not found. Please login first.',
+        );
       }
       final siteId = userInfo['site_id'].toString();
 
@@ -78,7 +80,6 @@ class ApiController {
 
         await getUserInfo();
         await getAuxiliaries();
-        // await startRecording();
         return true;
       } else {
         print('Login failed: ${response.statusCode} - ${response.body}');
@@ -109,8 +110,6 @@ class ApiController {
 
       ApiController.instance.clearToken();
 
-      // stopRecording();
-
       print("All local storage cleared. Background service stopped.");
     } catch (e) {
       print("Error clearing app data: $e");
@@ -126,7 +125,9 @@ class ApiController {
     try {
       final userInfo = await loadUserInfo();
       if (userInfo == null || userInfo['id'] == null) {
-        throw Exception('User info not found. Please login first.');
+        throw Exception(
+          'create employee log User info not found. Please login first.',
+        );
       }
       final headers = await _headers();
       final employeeId = userInfo['id'];
@@ -157,7 +158,9 @@ class ApiController {
       final headers = await _headers();
       final userInfo = await loadUserInfo();
       if (userInfo == null || userInfo['id'] == null) {
-        throw Exception('User info not found. Please login first.');
+        throw Exception(
+          'create personal break User info not found. Please login first.',
+        );
       }
       final employeeId = userInfo['id'];
       final siteId = userInfo['site_id'];
@@ -195,7 +198,9 @@ class ApiController {
       final idleStatus = isIdle ? "1" : "0";
       final userInfo = await loadUserInfo();
       if (userInfo == null || userInfo['id'] == null) {
-        throw Exception('User info not found. Please login first.');
+        throw Exception(
+          'create employee idle User info not found. Please login first.',
+        );
       }
       final employeeId = userInfo['id'];
       final url = Uri.parse('$baseUrl/create-employee-idle');
@@ -253,9 +258,9 @@ class ApiController {
 
   /// Logout
   Future<void> logout() async {
-    _accessToken = null;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('accessToken');
+    await prefs.clear();
+    _accessToken = null;
     print('Logged out.');
   }
 }
