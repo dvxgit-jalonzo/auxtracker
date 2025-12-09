@@ -14,7 +14,7 @@ void main() async {
 
   await windowManager.ensureInitialized();
 
-  const windowWidth = 500.0;
+  const windowWidth = 400.0;
   const windowHeight = 500.0;
 
   WindowOptions windowOptions = const WindowOptions(
@@ -141,8 +141,10 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> with WindowListener {
   final _formKey = GlobalKey<FormState>();
-  final _usernameController = TextEditingController(text: "admin");
-  final _passwordController = TextEditingController(text: "admin123");
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+  // final _usernameController = TextEditingController(text: "admin");
+  // final _passwordController = TextEditingController(text: "admin123");
   bool _isPasswordVisible = false;
   bool _isLoading = false;
 
@@ -264,14 +266,7 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
                       'Welcome Back',
                       style: TextStyle(fontSize: 26, color: Colors.white),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Sign in to continue',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.white.withOpacity(0.8),
-                      ),
-                    ),
+
                     const SizedBox(height: 32),
 
                     // Username Field

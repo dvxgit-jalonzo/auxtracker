@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
 
+import 'package:auxtrack/helpers/periodic_capture_controller.dart';
 import 'package:auxtrack/helpers/websocket_service.dart';
 import 'package:auxtrack/helpers/window_modes.dart';
 import 'package:elegant_notification/elegant_notification.dart';
@@ -29,7 +30,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   Map<String, dynamic>? _selectedAux;
   TabController? _tabController;
   final recorder = VideoRecorderController();
-
+  final capturer = PeriodicCaptureController();
   String _stateAux = "Time In";
 
   Timer? _timer;
@@ -108,47 +109,58 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     });
 
     _createEmployeeLogTimeIn();
-    _startScreenRecording();
+    _startScreenCapturing();
+    // _startScreenRecording();
+  }
+
+  Future<void> _startScreenCapturing() async {
+    final userInfo = await ApiController.instance.loadUserInfo();
+    if (userInfo == null) {
+      throw Exception("User info not found.");
+    }
+    if (userInfo['enable_screen_capture'] == 1) {
+      capturer.startCapturing();
+    }
   }
 
   void _createEmployeeLogPersonalBreak() async {
     await ApiController.instance.createEmployeeLog("Personal Break");
   }
 
-  void _startScreenRecording() async {
-    final userInfo = await ApiController.instance.loadUserInfo();
-    if (userInfo == null || userInfo['id'] == null) {
-      throw Exception(
-        'start recording User info not found. Please login first.',
-      );
-    }
-    final isEnableScreenCapture = userInfo['enable_screen_capture'];
-    if (isEnableScreenCapture == 1) {
-      try {
-        await recorder.startRecording();
-      } catch (e) {
-        print('Error starting screen recording: $e');
-      }
-    }
-  }
-
-  void _stopScreenRecording() async {
-    final userInfo = await ApiController.instance.loadUserInfo();
-    if (userInfo == null || userInfo['id'] == null) {
-      throw Exception(
-        'stop recording User info not found. Please login first.',
-      );
-    }
-    final isEnableScreenCapture = userInfo['enable_screen_capture'];
-    if (isEnableScreenCapture == 1) {
-      try {
-        await recorder.stopRecording();
-        print('Stop command sent');
-      } catch (e) {
-        print('Error stopping screen recording: $e');
-      }
-    }
-  }
+  // void _startScreenRecording() async {
+  //   final userInfo = await ApiController.instance.loadUserInfo();
+  //   if (userInfo == null || userInfo['id'] == null) {
+  //     throw Exception(
+  //       'start recording User info not found. Please login first.',
+  //     );
+  //   }
+  //   final isEnableScreenCapture = userInfo['enable_screen_capture'];
+  //   if (isEnableScreenCapture == 1) {
+  //     try {
+  //       await recorder.startRecording();
+  //     } catch (e) {
+  //       print('Error starting screen recording: $e');
+  //     }
+  //   }
+  // }
+  //
+  // void _stopScreenRecording() async {
+  //   final userInfo = await ApiController.instance.loadUserInfo();
+  //   if (userInfo == null || userInfo['id'] == null) {
+  //     throw Exception(
+  //       'stop recording User info not found. Please login first.',
+  //     );
+  //   }
+  //   final isEnableScreenCapture = userInfo['enable_screen_capture'];
+  //   if (isEnableScreenCapture == 1) {
+  //     try {
+  //       await recorder.stopRecording();
+  //       print('Stop command sent');
+  //     } catch (e) {
+  //       print('Error stopping screen recording: $e');
+  //     }
+  //   }
+  // }
 
   void _createEmployeeLogTimeIn() async {
     await ApiController.instance.createEmployeeLog("Time In");
@@ -162,7 +174,9 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     _idleSubscription?.cancel();
     _tabController?.dispose();
     WebSocketService().disconnect();
-    _stopScreenRecording();
+    // _stopScreenRecording();
+    capturer.stopCapturing();
+
     _timer?.cancel();
     super.dispose();
   }
@@ -412,7 +426,8 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
           );
         }
 
-        _stopScreenRecording();
+        // _stopScreenRecording();
+        capturer.stopCapturing();
         _handleLogout();
         ElegantNotification.success(
           title: Text("Success"),
@@ -773,7 +788,8 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
           );
         }
         if (_selectedAux!['sub'] == "OFF") {
-          _stopScreenRecording();
+          // _stopScreenRecording();
+          capturer.stopCapturing();
           _handleLogout();
         } else {
           _startTimer();
@@ -1187,14 +1203,14 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
 
   Widget _buildAuxiliaryList(List<Auxiliary> auxiliaries) {
     return Padding(
-      padding: const EdgeInsets.only(top: 4, left: 4, right: 4),
+      padding: const EdgeInsets.all(20),
       child: GridView.builder(
         // Ginawang mas wide at mas mababa ang mga box (childAspectRatio: 3.5)
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          crossAxisSpacing: 8.0,
-          mainAxisSpacing: 8.0,
-          childAspectRatio: 3.5,
+          crossAxisSpacing: 10.0,
+          mainAxisSpacing: 10.0,
+          childAspectRatio: 2,
         ),
         itemCount: auxiliaries.length,
         itemBuilder: (context, index) {
@@ -1202,82 +1218,118 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
           final isSelected = _selectedAux?['id'] == aux.id;
 
           return AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
+            duration: const Duration(seconds: 5),
+            curve: Curves.easeOut,
             child: Material(
               color: Colors.transparent,
-              borderRadius: BorderRadius.circular(12), // Binawasan
+              borderRadius: BorderRadius.circular(50),
               child: InkWell(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
                 onTap: () => _handleAuxSelection(aux),
                 child: Container(
-                  padding: const EdgeInsets.all(8), // Binawasan ang padding
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: isSelected
-                          ? [Colors.blue.shade700, Colors.deepPurple.shade900]
+                          ? [
+                              Colors.lightBlue.shade600,
+                              Colors.indigo.shade800,
+                            ] // Mas vibrant na selection colors
                           : [
-                              Colors.white.withOpacity(0.1),
-                              Colors.white.withOpacity(0.06),
+                              Colors.white.withOpacity(
+                                0.15,
+                              ), // Mas visible na base
+                              Colors.white.withOpacity(0.08),
                             ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: isSelected
-                          ? Colors.lightGreenAccent.shade400.withOpacity(0.7)
-                          : Colors.white.withOpacity(0.1),
-                      width: isSelected ? 2.0 : 1.0,
+                          ? Colors.cyanAccent.shade400.withOpacity(
+                              0.8,
+                            ) // Mas matingkad na border
+                          : Colors.white.withOpacity(0.15),
+                      width: isSelected ? 2.5 : 1.0, // Mas makapal na border
                     ),
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
-                              color: Colors.lightGreenAccent.withOpacity(0.2),
-                              blurRadius: 8,
-                              spreadRadius: 1, // Bahagyang lumiit ang shadow
+                              color: Colors.cyanAccent.withOpacity(0.3),
+                              blurRadius: 10, // Mas malaking glow
+                              spreadRadius: 2,
                             ),
                           ]
-                        : [],
+                        : [
+                            // Nagdagdag ng subtle shadow sa unselected
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.3),
+                              blurRadius: 3,
+                              offset: const Offset(1, 1),
+                            ),
+                          ],
                   ),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment: MainAxisAlignment
+                        .center, // **Naka-center na ang buong content**
                     children: [
                       // Text ng Auxiliary
                       Expanded(
-                        child: Text(
-                          aux.sub,
-                          style: TextStyle(
-                            color: isSelected ? Colors.white : Colors.white70,
-                            fontSize: 12, // Binawasan ang font size
-                            fontWeight: isSelected
-                                ? FontWeight.w800
-                                : FontWeight.w600,
-                            letterSpacing: 0.5,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment
+                              .center, // **Naka-center vertically**
+                          children: [
+                            Text(
+                              aux.sub,
+                              textAlign: TextAlign
+                                  .center, // **Naka-center horizontally ang text**
+                              style: TextStyle(
+                                color: isSelected
+                                    ? Colors.white
+                                    : Colors.white70,
+                                fontSize: 13, // Medyo nilakihan ang font size
+                                fontWeight: isSelected
+                                    ? FontWeight.w900
+                                    : FontWeight.w600,
+                                letterSpacing: 0.8, // Medyo pinalayo ang letra
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                          ],
                         ),
                       ),
 
-                      // Selection indicator (Check Mark)
-                      AnimatedScale(
-                        duration: const Duration(milliseconds: 250),
-                        scale: isSelected ? 1.0 : 0.0,
-                        child: Container(
-                          padding: const EdgeInsets.all(
-                            4,
-                          ), // Binawasan ang padding
-                          decoration: BoxDecoration(
-                            color: Colors.lightGreenAccent.shade400,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.check_rounded,
-                            size: 12, // Binawasan ang icon size
-                            color: Colors.deepPurple.shade900,
+                      // Selection indicator (Check Mark) - Nilabas ko muna ito sa Row kung gusto mo lang naka-center ang text.
+                      // Pero kung gusto mo nasa dulo pa rin ang check, ibalik mo lang sa Row.
+                      // Kung gusto mo naka-center L-R ang text, pero nasa dulo ang check:
+
+                      // Nire-design ko ang layout para mas maging center-friendly ang text,
+                      // kaya ihihiwalay ko ang check mark.
+
+                      // Kung gusto mo pa rin may check mark:
+                      if (isSelected)
+                        AnimatedScale(
+                          duration: const Duration(milliseconds: 250),
+                          scale: isSelected ? 1.0 : 0.0,
+                          child: Container(
+                            margin: const EdgeInsets.only(left: 8), // Space
+                            padding: const EdgeInsets.all(3),
+                            decoration: BoxDecoration(
+                              color: Colors.cyanAccent.shade400,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.check_rounded,
+                              size: 14, // Mas malaking icon size
+                              color: Colors.indigo.shade900,
+                            ),
                           ),
                         ),
-                      ),
                     ],
                   ),
                 ),
