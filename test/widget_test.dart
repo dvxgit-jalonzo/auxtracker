@@ -5,26 +5,32 @@
 // gestures. You can also use WidgetTester to find child widgets in the widget
 // tree, read text, and verify that the values of widget properties are correct.
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:auxtrack/main.dart';
 
-void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
-
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
-  });
+void main() async {
+  final String configString = await rootBundle.loadString('assets/config/configuration.json');
+  final Map<String, dynamic> config = json.decode(configString);
+  print(config);
+  // testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+  //   // Build our app and trigger a frame.
+  //   await tester.pumpWidget(const MyApp());
+  //
+  //   // Verify that our counter starts at 0.
+  //   expect(find.text('0'), findsOneWidget);
+  //   expect(find.text('1'), findsNothing);
+  //
+  //   // Tap the '+' icon and trigger a frame.
+  //   await tester.tap(find.byIcon(Icons.add));
+  //   await tester.pump();
+  //
+  //   // Verify that our counter has incremented.
+  //   expect(find.text('0'), findsNothing);
+  //   expect(find.text('1'), findsOneWidget);
+  // });
 }

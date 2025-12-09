@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:auxtrack/helpers/configuration.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -8,8 +9,7 @@ class ApiController {
   ApiController._privateConstructor();
   static final ApiController instance = ApiController._privateConstructor();
 
-  static const String host = "127.0.0.1:8000";
-  final String baseUrl = 'http://$host/api';
+
 
   String? _accessToken;
 
@@ -27,9 +27,35 @@ class ApiController {
     await prefs.setString('accessToken', token);
   }
 
-  /// Get auxiliaries using site_id from localStorage
+
+  Future<void> getReverbAppKey() async {
+    try {
+      final host = await Configuration.instance.get("host");
+      final headers = await _headers();
+
+      final url = Uri.http(host, '/api/get-reverb-key');
+      final response = await http.get(url, headers: headers);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('reverbAppKey', jsonEncode(data));
+        print('Reverb App Key fetched and saved to local storage successfully.');
+      } else {
+        print(
+          'Failed to fetch Reverb: ${response.statusCode} - ${response.body}',
+        );
+        throw Exception('Failed to fetch Reverb');
+      }
+    } catch (e) {
+      final message = e.toString();
+      print(message);
+      rethrow;
+    }
+  }
+
   Future<void> getAuxiliaries() async {
     try {
+      final host = await Configuration.instance.get("host");
       // Get site_id from saved user info
       final userInfo = await loadUserInfo();
 
@@ -43,6 +69,7 @@ class ApiController {
       Map<String, dynamic> params = {"site_id": siteId};
 
       final headers = await _headers();
+
       final url = Uri.http(host, '/api/get-auxiliaries', params);
       final response = await http.get(url, headers: headers);
 
@@ -64,10 +91,13 @@ class ApiController {
     }
   }
 
+
+
   /// Login using username and password
   Future login(String username, String password) async {
     try {
-      final url = Uri.parse('$baseUrl/login');
+      final baseUrl = await Configuration.instance.get("baseUrl");
+      final url = Uri.parse("$baseUrl/login");
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
@@ -77,7 +107,7 @@ class ApiController {
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
         await _saveToken(data['access_token']);
-
+        await getReverbAppKey();
         await getUserInfo();
         await getAuxiliaries();
         return true;
@@ -123,6 +153,7 @@ class ApiController {
   /// Create employee log
   Future<bool> createEmployeeLog(String sub) async {
     try {
+      final baseUrl = await Configuration.instance.get("baseUrl");
       final userInfo = await loadUserInfo();
       if (userInfo == null || userInfo['id'] == null) {
         throw Exception(
@@ -155,6 +186,7 @@ class ApiController {
 
   Future<bool> createPersonalBreak(String reason) async {
     try {
+      final baseUrl = await Configuration.instance.get("baseUrl");
       final headers = await _headers();
       final userInfo = await loadUserInfo();
       if (userInfo == null || userInfo['id'] == null) {
@@ -194,6 +226,7 @@ class ApiController {
   /// Update employee idle status
   Future<void> createEmployeeIdle(bool isIdle) async {
     try {
+      final baseUrl = await Configuration.instance.get("baseUrl");
       final headers = await _headers();
       final idleStatus = isIdle ? "1" : "0";
       final userInfo = await loadUserInfo();
@@ -237,10 +270,21 @@ class ApiController {
     }
     return null;
   }
+  Future<Map<String, dynamic>?> loadReverbAppKey() async {
+    final prefs = await SharedPreferences.getInstance();
+    final revertAppKey = prefs.getString('reverbAppKey');
+    if (revertAppKey != null) {
+      return jsonDecode(revertAppKey);
+    }
+    return null;
+  }
+
+
 
   /// Get user info from API and save to localStorage (no return)
   Future<void> getUserInfo() async {
     try {
+      final baseUrl = await Configuration.instance.get("baseUrl");
       final headers = await _headers();
       final url = Uri.parse('$baseUrl/me');
       final response = await http.get(url, headers: headers);

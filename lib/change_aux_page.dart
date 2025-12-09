@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:ui';
 
 import 'package:auxtrack/helpers/websocket_service.dart';
+import 'package:auxtrack/helpers/window_modes.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -36,18 +37,19 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     });
   }
 
-  @override
-  void onWindowClose() async {
-    // Prevent default close behavior
-    // Instead, hide to system tray
-    await windowManager.hide();
-  }
+  // @override
+  // void onWindowClose() async {
+  //   // Prevent default close behavior
+  //   // Instead, hide to system tray
+  //   await windowManager.hide();
+  // }
 
   StreamSubscription<bool>? _idleSubscription;
   String? _currentStatus;
   @override
   void initState() {
     super.initState();
+    WindowModes.restricted();
     windowManager.addListener(this);
     _loadAuxiliariesFromLocal();
     IdleService.instance.initialize();
@@ -64,6 +66,9 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       if (data != null &&
           data is Map<String, dynamic> &&
           data.containsKey('status')) {
+        if(data['status'] == "APPROVED"){
+          _createEmployeeLogPersonalBreak();
+        }
         setState(() {
           _currentStatus = data['status'].toString();
         });
@@ -72,6 +77,10 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
 
     _createEmployeeLogTimeIn();
     _startScreenRecording();
+  }
+
+  void _createEmployeeLogPersonalBreak() async {
+    await ApiController.instance.createEmployeeLog("Personal Break");
   }
 
   void _startScreenRecording() async {
@@ -185,6 +194,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
 
     try {
       await ApiController.instance.logout();
+      await WindowModes.normal();
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -569,7 +579,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
+      body: DragToMoveArea(child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -685,8 +695,8 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                   letterSpacing: 0.2,
                                 ),
                                 tabs: _auxiliariesByCategory.keys.map((
-                                  category,
-                                ) {
+                                    category,
+                                    ) {
                                   return Tab(
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(
@@ -718,32 +728,32 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                     Expanded(
                       child: _tabController == null
                           ? Center(
-                              child: Text(
-                                'No auxiliaries available',
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.7),
-                                  fontSize: 12,
-                                ),
-                              ),
-                            )
+                        child: Text(
+                          'No auxiliaries available',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.7),
+                            fontSize: 12,
+                          ),
+                        ),
+                      )
                           : Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.3),
-                                ),
-                              ),
-                              child: TabBarView(
-                                controller: _tabController,
-                                children: _auxiliariesByCategory.entries
-                                    .map(
-                                      (entry) =>
-                                          _buildAuxiliaryList(entry.value),
-                                    )
-                                    .toList(),
-                              ),
-                            ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.3),
+                          ),
+                        ),
+                        child: TabBarView(
+                          controller: _tabController,
+                          children: _auxiliariesByCategory.entries
+                              .map(
+                                (entry) =>
+                                _buildAuxiliaryList(entry.value),
+                          )
+                              .toList(),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -820,7 +830,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
             ],
           ),
         ),
-      ),
+      )),
     );
   }
 

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:auxtrack/helpers/api_controller.dart';
+import 'package:auxtrack/helpers/configuration.dart';
 import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -26,8 +27,7 @@ class WebSocketService {
   Stream<Map<String, dynamic>> get messageStream => _messageController.stream;
 
   // Hardcoded connection details
-  static const String _androidHost = "127.0.0.1:8080";
-  static const String _reverbAppKey = "jl8hdc0f7s5s7xept132";
+
 
   Future<void> connect() async {
     if (_isConnected) {
@@ -44,7 +44,11 @@ class WebSocketService {
       debugPrint("Websocket Connecting...");
 
       final userInfo = await ApiController.instance.loadUserInfo();
-
+      final reverb = await ApiController.instance.loadReverbAppKey();
+      final wsHost = await Configuration.instance.get("wsHost");
+      if(reverb == null){
+        throw Exception("reverb app key not found");
+      }
       if (userInfo == null || userInfo['id'] == null) {
         throw Exception('websocket User info not found. Please login first.');
       }
@@ -53,7 +57,7 @@ class WebSocketService {
 
       _channel = IOWebSocketChannel.connect(
         Uri.parse(
-          'ws://$_androidHost/app/$_reverbAppKey?protocol=7&client=js&version=4.4.0&flash=false',
+          'ws://$wsHost/app/${reverb['key']}?protocol=7&client=js&version=4.4.0&flash=false',
         ),
       );
 
@@ -107,11 +111,6 @@ class WebSocketService {
         }
       } else {
         // Log the full message for debugging
-        if (kDebugMode) {
-          print("📨 Event: $event");
-          print("📦 Full data: $data");
-        }
-
         // Extract the actual event data
         if (jsonMap.containsKey('data')) {
           final eventData = jsonMap['data'];
@@ -120,8 +119,10 @@ class WebSocketService {
               : eventData;
 
           if (kDebugMode) {
-            print("📋 Parsed data: $parsedData");
+            print("📋 Parsed data: ${parsedData['status']}");
           }
+
+
 
           // Add to stream with event name and data
           _messageController.add({
