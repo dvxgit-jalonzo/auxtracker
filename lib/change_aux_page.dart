@@ -2,12 +2,14 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
 
+import 'package:auxtrack/helpers/custom_notification.dart';
+import 'package:auxtrack/helpers/periodic_capture_controller.dart';
 import 'package:auxtrack/helpers/websocket_service.dart';
+import 'package:auxtrack/helpers/window_modes.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:windows_toast/windows_toast.dart';
 
 import 'helpers/api_controller.dart';
 import 'helpers/idle_service.dart';
@@ -24,11 +26,67 @@ class ChangeAuxPage extends StatefulWidget {
 
 class _ChangeAuxPageState extends State<ChangeAuxPage>
     with WindowListener, SingleTickerProviderStateMixin {
-  bool _isLoading = false;
   Map<String, List<Auxiliary>> _auxiliariesByCategory = {};
   Map<String, dynamic>? _selectedAux;
   TabController? _tabController;
   final recorder = VideoRecorderController();
+  final capturer = PeriodicCaptureController();
+  String _stateAux = "Time In";
+
+  Timer? _timer;
+  Duration _elapsedTime = Duration.zero;
+  String _formattedTime = "00:00:00";
+
+  // StreamSubscription<bool>? _idleSubscription;
+  String? _currentStatus;
+  @override
+  void initState() {
+    super.initState();
+    WindowModes.restricted();
+    windowManager.addListener(this);
+    _loadAuxiliariesFromLocal();
+    IdleService.instance.initialize();
+    // _idleSubscription = IdleService.instance.idleStateStream.listen((isIdle) {
+    //   ApiController.instance.createEmployeeIdle(isIdle);
+    // });
+
+    WebSocketService().connect();
+    WebSocketService().messageStream.listen((message) {
+      if (message['event'] == "personalBreakResponse") {
+        final data = message['data'];
+        final status = data['status'];
+        setState(() {
+          _currentStatus = status;
+        });
+        if (status == "APPROVED") {
+          _createEmployeeLogPersonalBreak();
+        }
+      }
+
+      if (message['event'] == "logoutEmployeeEvent") {
+        final data = message['data'];
+        final employeeId = data['employee_id'];
+        _handleLogout();
+      }
+    });
+
+    _createEmployeeLogTimeIn();
+    _startScreenCapturing();
+    // _startScreenRecording();
+  }
+
+  @override
+  void dispose() {
+    windowManager.removeListener(this);
+    // _idleSubscription?.cancel();
+    _tabController?.dispose();
+    WebSocketService().disconnect();
+    // _stopScreenRecording();
+    capturer.stopCapturing();
+    _timer?.cancel();
+    IdleService.instance.dispose();
+    super.dispose();
+  }
 
   void _dismissStatus() {
     setState(() {
@@ -36,92 +94,51 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     });
   }
 
-  @override
-  void onWindowClose() async {
-    // Prevent default close behavior
-    // Instead, hide to system tray
-    await windowManager.hide();
-  }
-
-  StreamSubscription<bool>? _idleSubscription;
-  String? _currentStatus;
-  @override
-  void initState() {
-    super.initState();
-    windowManager.addListener(this);
-    _loadAuxiliariesFromLocal();
-    IdleService.instance.initialize();
-    _idleSubscription = IdleService.instance.idleStateStream.listen((isIdle) {
-      ApiController.instance.createEmployeeIdle(isIdle);
+  void _startTimer() {
+    _timer?.cancel();
+    _elapsedTime = Duration.zero;
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        _elapsedTime = Duration(seconds: _elapsedTime.inSeconds + 1);
+        _formattedTime = _formatDuration(_elapsedTime);
+      });
     });
+  }
 
-    WebSocketService().connect();
-    WebSocketService().messageStream.listen((message) {
-      print('Received: ${message['event']}');
-
-      // Extract 'status' if it exists
-      final data = message['data'];
-      if (data != null &&
-          data is Map<String, dynamic> &&
-          data.containsKey('status')) {
-        setState(() {
-          _currentStatus = data['status'].toString();
-        });
-      }
+  void _stopTimer() {
+    _timer?.cancel();
+    setState(() {
+      _elapsedTime = Duration.zero;
+      _formattedTime = "00:00:00";
     });
-
-    _createEmployeeLogTimeIn();
-    _startScreenRecording();
   }
 
-  void _startScreenRecording() async {
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    String hours = twoDigits(duration.inHours);
+    String minutes = twoDigits(duration.inMinutes.remainder(60));
+    String seconds = twoDigits(duration.inSeconds.remainder(60));
+    return "$hours:$minutes:$seconds";
+  }
+
+  Future<void> _startScreenCapturing() async {
     final userInfo = await ApiController.instance.loadUserInfo();
-    if (userInfo == null || userInfo['id'] == null) {
-      throw Exception(
-        'start recording User info not found. Please login first.',
-      );
+    if (userInfo == null) {
+      throw Exception("User info not found.");
     }
-    final isEnableScreenCapture = userInfo['enable_screen_capture'];
-    if (isEnableScreenCapture == 1) {
-      try {
-        await recorder.startRecording();
-      } catch (e) {
-        print('Error starting screen recording: $e');
-      }
+    if (userInfo['enable_screen_capture'] == 1) {
+      capturer.startCapturing();
     }
   }
 
-  void _stopScreenRecording() async {
-    final userInfo = await ApiController.instance.loadUserInfo();
-    if (userInfo == null || userInfo['id'] == null) {
-      throw Exception(
-        'stop recording User info not found. Please login first.',
-      );
-    }
-    final isEnableScreenCapture = userInfo['enable_screen_capture'];
-    if (isEnableScreenCapture == 1) {
-      try {
-        await recorder.stopRecording();
-        print('Stop command sent');
-      } catch (e) {
-        print('Error stopping screen recording: $e');
-      }
-    }
+  void _createEmployeeLogPersonalBreak() async {
+    await ApiController.instance.createEmployeeLog("Personal Break");
   }
 
   void _createEmployeeLogTimeIn() async {
     await ApiController.instance.createEmployeeLog("Time In");
-    print("Time In already sent to the server");
-  }
-
-  @override
-  void dispose() {
-    windowManager.removeListener(this);
-    _idleSubscription?.cancel();
-    _tabController?.dispose();
-    WebSocketService().disconnect();
-    _stopScreenRecording();
-    super.dispose();
+    _startTimer();
+    CustomNotification.info(context, "Aux set to Time In.");
   }
 
   IconData _getCategoryIcon(String category) {
@@ -135,7 +152,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       case 'OTHER':
         return Icons.more_horiz_rounded;
       case 'LOG OFF':
-        return Icons.logout_rounded;
+        return Icons.settings_power_rounded;
       default:
         return Icons.category_rounded;
     }
@@ -181,10 +198,17 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   }
 
   Future<void> _handleLogout() async {
-    setState(() => _isLoading = true);
-
     try {
+      final userInfo = await ApiController.instance.loadUserInfo();
+      if (userInfo == null || userInfo['id'] == null) {
+        throw Exception('change aux User info not found. Please login first.');
+      }
+      await ApiController.instance.createEmployeeLog("OFF");
+
+      // _stopScreenRecording();
+      capturer.stopCapturing();
       await ApiController.instance.logout();
+      await WindowModes.normal();
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -192,7 +216,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
         );
       }
     } catch (e) {
-      setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -209,6 +232,165 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       _selectedAux = {'id': aux.id, 'main': aux.main, 'sub': aux.sub};
     });
     _handleConfirm();
+  }
+
+  Future<void> _requestLogout() async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(24),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: Colors.white.withOpacity(0.2)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.25),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                width: 300,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Icon container
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.settings_power,
+                        color: Colors.white,
+                        size: 34,
+                      ),
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    // Title
+                    const Text(
+                      'Confirm Selection',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    // Selected item card
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 14,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.06),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.18),
+                        ),
+                      ),
+                      child: Text(
+                        "OFF",
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 22),
+
+                    Row(
+                      children: [
+                        // Cancel
+                        Expanded(
+                          child: TextButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                            },
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                side: BorderSide(
+                                  color: Colors.white.withOpacity(0.4),
+                                ),
+                              ),
+                            ),
+                            child: const Text(
+                              'Cancel',
+                              style: TextStyle(fontSize: 13),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(width: 12),
+
+                        // Confirm
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue.shade800,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              elevation: 6,
+                            ),
+                            child: const Text(
+                              'Confirm',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    if (result == true) {
+      if (mounted) {
+        _handleLogout();
+        final message = "Aux set to OFF";
+        CustomNotification.info(context, message);
+      }
+    }
   }
 
   Future<void> _handleConfirm() async {
@@ -353,7 +535,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                 elevation: 6,
                               ),
                               child: const Text(
-                                'Request Break',
+                                'Request',
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
@@ -379,20 +561,27 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
           );
           if (mounted) {
             if (success) {
-              WindowsToast.show("Please wait for confirmation!", context, 30);
+              final message = "Request Sent";
+              CustomNotification.info(context, message);
             } else {
-              WindowsToast.show(
-                "Failed to request Personal Break",
+              CustomNotification.error(
                 context,
-                30,
+                "Failed to request Personal Break",
               );
             }
           }
         } catch (e) {
           if (mounted) {
-            WindowsToast.show("Error: ${e.toString()}", context, 30);
+            CustomNotification.error(
+              context,
+              "Failed to request Personal Break",
+            );
           }
         }
+      } else {
+        setState(() {
+          _selectedAux = null;
+        });
       }
       return; // Exit early for Personal Break
     }
@@ -438,8 +627,10 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                         color: Colors.white.withOpacity(0.15),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.help_outline_rounded,
+
+                      // asdf
+                      child: Icon(
+                        _getCategoryIcon(_selectedAux!['main']),
                         color: Colors.white,
                         size: 34,
                       ),
@@ -549,275 +740,433 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
 
     if (result == true) {
       if (mounted) {
-        await ApiController.instance.createEmployeeLog(_selectedAux!['sub']);
-        final userInfo = await ApiController.instance.loadUserInfo();
-        if (userInfo == null || userInfo['id'] == null) {
-          throw Exception(
-            'change aux User info not found. Please login first.',
-          );
-        }
         if (_selectedAux!['sub'] == "OFF") {
-          _stopScreenRecording();
           _handleLogout();
+        } else {
+          final userInfo = await ApiController.instance.loadUserInfo();
+          if (userInfo == null || userInfo['id'] == null) {
+            throw Exception(
+              'change aux User info not found. Please login first.',
+            );
+          }
+          await ApiController.instance.createEmployeeLog(_selectedAux!['sub']);
+          _startTimer();
         }
 
-        WindowsToast.show("Saved!", context, 30);
+        setState(() {
+          _stateAux = _selectedAux!['sub'];
+        });
+        final message = "Aux set to ${_selectedAux!['sub']}";
+        CustomNotification.info(context, message);
       }
+    } else {
+      setState(() {
+        _selectedAux = null;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Colors.green.shade700, Colors.deepPurple.shade900],
+      body: DragToMoveArea(
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Colors.green.shade700, Colors.deepPurple.shade900],
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Stack(
-            // Use a Stack to overlay the status indicator at the top
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Original Title (moved up)
-                    const Text(
-                      'Select Auxiliary',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-
-                    // The rest of your content (TabBar, TabBarView, etc.)
-                    if (_tabController != null)
-                      Container(
-                        // ... (Your TabBar code) ...
-                        height: 42,
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.15),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.25),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: Listener(
-                            onPointerSignal: (event) {
-                              if (event is PointerScrollEvent) {
-                                // Handle mouse wheel scroll - switches tabs
-                                final scrollOffset = event.scrollDelta.dy;
-
-                                if (scrollOffset > 0 &&
-                                    _tabController!.index <
-                                        _tabController!.length - 1) {
-                                  _tabController!.animateTo(
-                                    _tabController!.index + 1,
-                                  );
-                                } else if (scrollOffset < 0 &&
-                                    _tabController!.index > 0) {
-                                  _tabController!.animateTo(
-                                    _tabController!.index - 1,
-                                  );
-                                }
-                              }
-                            },
-                            child: MouseRegion(
-                              cursor: SystemMouseCursors.click,
-                              child: TabBar(
-                                controller: _tabController,
-                                isScrollable: true,
-                                tabAlignment: TabAlignment.start,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 3,
-                                  vertical: 3,
+          child: SafeArea(
+            child: Stack(
+              // Use a Stack to overlay the status indicator at the top
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Flexible(
+                            // ✅ Add Flexible here
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12, // 16 → 12
+                                vertical: 8, // 10 → 8
+                              ),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.lightBlue.withOpacity(0.2),
+                                    Colors.white.withOpacity(0.08),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
                                 ),
-                                indicatorSize: TabBarIndicatorSize.tab,
-                                dividerColor: Colors.transparent,
-                                indicator: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Colors.blue.shade400,
-                                      Colors.blue.shade600,
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
+                                borderRadius: BorderRadius.circular(
+                                  20,
+                                ), // 25 → 20
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.4),
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.4),
+                                    blurRadius: 12, // 15 → 12
+                                    offset: const Offset(0, 4), // 5 → 4
                                   ),
-                                  borderRadius: BorderRadius.circular(8),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.greenAccent.withOpacity(
-                                        0.3,
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const SizedBox(width: 6), // 8 → 6
+                                  Flexible(
+                                    child: Text(
+                                      _stateAux ?? "NOT LOGGED",
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12, // 14 → 12
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: 0.8, // 1.0 → 0.8
                                       ),
-                                      blurRadius: 6,
-                                      offset: const Offset(0, 2),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
+                                  ),
+                                  const SizedBox(width: 10), // 15 → 10
+                                  Container(
+                                    height: 16, // 20 → 16
+                                    width: 1,
+                                    color: Colors.white.withOpacity(0.3),
+                                  ),
+                                  const SizedBox(width: 10), // 15 → 10
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, // 10 → 8
+                                      vertical: 4, // 5 → 4
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(
+                                        12,
+                                      ), // 15 → 12
+                                      border: Border.all(
+                                        color: Colors.white.withOpacity(0.2),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.timer_sharp,
+                                          size: 12, // 14 → 12
+                                          color: Colors.lightGreenAccent,
+                                        ),
+                                        const SizedBox(width: 5), // 6 → 5
+                                        Text(
+                                          _formattedTime,
+                                          style: TextStyle(
+                                            color: Colors.lightGreenAccent,
+                                            fontSize: 11, // 12 → 11
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: 0.4, // 0.5 → 0.4
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          InkWell(
+                            borderRadius: BorderRadius.circular(40),
+                            onTap: () {
+                              _requestLogout();
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(1.5),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle, // Changed to circle
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.deepPurple,
+                                    blurRadius: 8,
+                                  ),
+                                ],
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.deepOrange.shade500,
+                                    Colors.pinkAccent.shade700,
                                   ],
                                 ),
-                                labelColor: Colors.white,
-                                unselectedLabelColor: Colors.white.withOpacity(
-                                  0.5,
+                              ),
+                              child: Container(
+                                padding: const EdgeInsets.all(
+                                  8,
+                                ), // Equal padding on all sides
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade900,
+                                  shape: BoxShape.circle, // Changed to circle
                                 ),
-                                labelStyle: const TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.3,
+                                child: Icon(
+                                  Icons.settings_power,
+                                  size: 15,
+                                  color: Colors.deepOrange.shade500,
                                 ),
-                                unselectedLabelStyle: const TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w500,
-                                  letterSpacing: 0.2,
-                                ),
-                                tabs: _auxiliariesByCategory.keys.map((
-                                  category,
-                                ) {
-                                  return Tab(
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 6,
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            _getCategoryIcon(category),
-                                            size: 14,
-                                          ),
-                                          const SizedBox(width: 5),
-                                          Text(category),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
                               ),
                             ),
                           ),
-                        ),
+                        ],
                       ),
 
-                    const SizedBox(height: 8),
+                      const SizedBox(height: 8),
 
-                    Expanded(
-                      child: _tabController == null
-                          ? Center(
-                              child: Text(
-                                'No auxiliaries available',
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.7),
-                                  fontSize: 12,
-                                ),
-                              ),
-                            )
-                          : Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.3),
-                                ),
-                              ),
-                              child: TabBarView(
-                                controller: _tabController,
-                                children: _auxiliariesByCategory.entries
-                                    .map(
-                                      (entry) =>
-                                          _buildAuxiliaryList(entry.value),
-                                    )
-                                    .toList(),
-                              ),
+                      if (_tabController != null)
+                        Container(
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.15),
                             ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // --- NEW: Status Indicator Overlay ---
-              if (_currentStatus != null)
-                Positioned(
-                  top: 20, // Sit slightly below the very top edge
-                  left: 0,
-                  right: 0,
-                  child: Center(
-                    child: GestureDetector(
-                      // Added GestureDetector for dismiss
-                      onTap: _dismissStatus, // Call the new dismiss method
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          // --- UPDATED: Deep Purple/Magenta Gradient ---
-                          gradient: LinearGradient(
-                            colors: [
-                              const Color(
-                                0xFF9C27B0,
-                              ).withOpacity(0.95), // Deep Purple
-                              const Color(
-                                0xFFE91E63,
-                              ).withOpacity(0.95), // Magenta/Pink
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.25),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
                             ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
                           ),
-                          borderRadius: BorderRadius.circular(10),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.4),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.notifications_active_rounded,
-                              color: Colors.white,
-                              size: 18,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Personal Brake has been $_currentStatus',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Listener(
+                              onPointerSignal: (event) {
+                                if (event is PointerScrollEvent) {
+                                  // Handle mouse wheel scroll - switches tabs
+                                  final scrollOffset = event.scrollDelta.dy;
+
+                                  if (scrollOffset > 0 &&
+                                      _tabController!.index <
+                                          _tabController!.length - 1) {
+                                    _tabController!.animateTo(
+                                      _tabController!.index + 1,
+                                    );
+                                  } else if (scrollOffset < 0 &&
+                                      _tabController!.index > 0) {
+                                    _tabController!.animateTo(
+                                      _tabController!.index - 1,
+                                    );
+                                  }
+                                }
+                              },
+                              child: MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: TabBar(
+                                  controller: _tabController,
+                                  isScrollable: true,
+                                  tabAlignment: TabAlignment.start,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 3,
+                                    vertical: 3,
+                                  ),
+                                  indicatorSize: TabBarIndicatorSize.tab,
+                                  dividerColor: Colors.transparent,
+                                  indicator: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Colors.deepPurple.shade500,
+                                        Colors.blue.shade900,
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.greenAccent.withOpacity(
+                                          0.3,
+                                        ),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  labelColor: Colors.white,
+                                  unselectedLabelColor: Colors.white
+                                      .withOpacity(0.5),
+                                  labelStyle: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.3,
+                                  ),
+                                  unselectedLabelStyle: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w500,
+                                    letterSpacing: 0.2,
+                                  ),
+                                  tabs: _auxiliariesByCategory.keys.map((
+                                    category,
+                                  ) {
+                                    return Tab(
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 6,
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              _getCategoryIcon(category),
+                                              size: 14,
+                                            ),
+                                            const SizedBox(width: 5),
+                                            Text(category),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
                               ),
                             ),
-                            const SizedBox(width: 10),
-                            // Subtle close indicator
-                            Icon(
-                              Icons.close,
-                              color: Colors.white.withOpacity(0.7),
-                              size: 16,
-                            ),
-                          ],
+                          ),
                         ),
+
+                      const SizedBox(height: 8),
+
+                      Expanded(
+                        child: _tabController == null
+                            ? Center(
+                                child: Text(
+                                  'No auxiliaries available',
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.7),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              )
+                            : Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: Colors.white.withOpacity(0.3),
+                                  ),
+                                ),
+                                child: TabBarView(
+                                  controller: _tabController,
+                                  children: _auxiliariesByCategory.entries
+                                      .map(
+                                        (entry) =>
+                                            _buildAuxiliaryList(entry.value),
+                                      )
+                                      .toList(),
+                                ),
+                              ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
-            ],
+
+                // --- NEW: Status Indicator Overlay ---
+                if (_currentStatus != null)
+                  Positioned(
+                    top: 20,
+                    left: 8, // Add padding from edges
+                    right: 8,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        // Determine size based on available width
+                        final isNarrow = constraints.maxWidth < 300;
+                        final isVeryNarrow = constraints.maxWidth < 200;
+
+                        return Center(
+                          child: GestureDetector(
+                            onTap: _dismissStatus,
+                            child: Container(
+                              constraints: BoxConstraints(
+                                maxWidth:
+                                    constraints.maxWidth -
+                                    16, // Prevent overflow
+                              ),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: isVeryNarrow
+                                    ? 8
+                                    : (isNarrow ? 12 : 16),
+                                vertical: isVeryNarrow
+                                    ? 6
+                                    : (isNarrow ? 8 : 10),
+                              ),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.deepPurple.shade500,
+                                    Colors.blue.shade900,
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(10),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.4),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  // Hide icon on very narrow screens
+                                  if (!isVeryNarrow) ...[
+                                    Icon(
+                                      Icons.notifications_active_rounded,
+                                      color: Colors.white,
+                                      size: isNarrow ? 16 : 18,
+                                    ),
+                                    SizedBox(width: isNarrow ? 6 : 8),
+                                  ],
+                                  // Flexible text that wraps or truncates
+                                  Flexible(
+                                    child: Text(
+                                      'Personal Brake has been $_currentStatus',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: isVeryNarrow
+                                            ? 11
+                                            : (isNarrow ? 12 : 13),
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: isVeryNarrow ? 1 : 2,
+                                    ),
+                                  ),
+                                  SizedBox(width: isNarrow ? 6 : 10),
+                                  Icon(
+                                    Icons.close,
+                                    color: Colors.white.withOpacity(0.7),
+                                    size: isNarrow ? 14 : 16,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -825,150 +1174,130 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   }
 
   Widget _buildAuxiliaryList(List<Auxiliary> auxiliaries) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(12),
-      itemCount: auxiliaries.length,
-      itemBuilder: (context, index) {
-        final aux = auxiliaries[index];
-        final isSelected =
-            _selectedAux != null && _selectedAux!['id'] == aux.id;
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: GridView.builder(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 10.0,
+          mainAxisSpacing: 10.0,
+          childAspectRatio: 2,
+        ),
+        itemCount: auxiliaries.length,
+        itemBuilder: (context, index) {
+          final aux = auxiliaries[index];
+          final isSelected = _selectedAux?['id'] == aux.id;
 
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          margin: const EdgeInsets.only(bottom: 8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: isSelected
-                    ? Colors.blue.withOpacity(0.3)
-                    : Colors.black.withOpacity(0.1),
-                blurRadius: isSelected ? 12 : 6,
-                offset: Offset(0, isSelected ? 4 : 2),
-              ),
-            ],
-          ),
-          child: Material(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () => _handleAuxSelection(aux),
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: isSelected
+          return AnimatedContainer(
+            duration: const Duration(seconds: 5),
+            curve: Curves.easeOut,
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(50),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () => _handleAuxSelection(aux),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: isSelected
+                          ? [Colors.lightBlue.shade600, Colors.indigo.shade800]
+                          : [
+                              Colors.white.withOpacity(0.15),
+                              Colors.white.withOpacity(0.08),
+                            ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isSelected
+                          ? Colors.cyanAccent.shade400.withOpacity(0.8)
+                          : Colors.white.withOpacity(0.15),
+                      width: isSelected ? 2.5 : 1.0,
+                    ),
+                    boxShadow: isSelected
                         ? [
-                            Colors.blue.shade400.withOpacity(0.85),
-                            Colors.blue.shade600.withOpacity(0.90),
+                            BoxShadow(
+                              color: Colors.cyanAccent.withOpacity(0.3),
+                              blurRadius: 10,
+                              spreadRadius: 2,
+                            ),
                           ]
                         : [
-                            Colors.white.withOpacity(0.12),
-                            Colors.white.withOpacity(0.08),
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.3),
+                              blurRadius: 3,
+                              offset: const Offset(1, 1),
+                            ),
                           ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isSelected
-                        ? Colors.blue.shade300.withOpacity(0.5)
-                        : Colors.white.withOpacity(0.15),
-                    width: isSelected ? 1.5 : 1,
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 14,
                   ),
                   child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Icon with gradient background
-                      Container(
-                        width: 42,
-                        height: 42,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: isSelected
-                                ? [
-                                    Colors.white.withOpacity(0.25),
-                                    Colors.white.withOpacity(0.15),
-                                  ]
-                                : [
-                                    Colors.white.withOpacity(0.15),
-                                    Colors.white.withOpacity(0.08),
-                                  ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.2),
-                            width: 1,
-                          ),
-                        ),
-                        child: Icon(
-                          Icons.radio_button_checked_rounded,
-                          size: 20,
-                          color: isSelected
-                              ? Colors.white
-                              : Colors.white.withOpacity(0.6),
-                        ),
-                      ),
-
-                      const SizedBox(width: 14),
-
-                      // Text content
+                      // Text ng Auxiliary
                       Expanded(
-                        child: Text(
-                          aux.sub,
-                          style: TextStyle(
-                            color: isSelected
-                                ? Colors.white
-                                : Colors.white.withOpacity(0.9),
-                            fontSize: 13.5,
-                            fontWeight: isSelected
-                                ? FontWeight.w700
-                                : FontWeight.w600,
-                            letterSpacing: 0.3,
-                          ),
-                          overflow: TextOverflow.ellipsis,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            FittedBox(
+                              fit: BoxFit
+                                  .scaleDown, // Mag-shrink ang font if needed
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                ),
+                                child: Text(
+                                  aux.sub,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: isSelected
+                                        ? Colors.white
+                                        : Colors.white70,
+                                    fontSize: 13,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w900
+                                        : FontWeight.w600,
+                                    letterSpacing: 0.8,
+                                  ),
+                                  maxLines: null,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
 
-                      // Selection indicator with animation
-                      AnimatedScale(
-                        duration: const Duration(milliseconds: 200),
-                        scale: isSelected ? 1.0 : 0.0,
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.white.withOpacity(0.4),
-                                blurRadius: 8,
-                                spreadRadius: 1,
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            Icons.check_rounded,
-                            size: 16,
-                            color: Colors.blue.shade700,
+                      if (isSelected)
+                        AnimatedScale(
+                          duration: const Duration(milliseconds: 250),
+                          scale: isSelected ? 1.0 : 0.0,
+                          child: Container(
+                            margin: const EdgeInsets.only(left: 8),
+                            padding: const EdgeInsets.all(3),
+                            decoration: BoxDecoration(
+                              color: Colors.cyanAccent.shade400,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.check_rounded,
+                              size: 14,
+                              color: Colors.indigo.shade900,
+                            ),
                           ),
                         ),
-                      ),
                     ],
                   ),
                 ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

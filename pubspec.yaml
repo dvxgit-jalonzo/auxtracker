@@ -39,7 +39,6 @@ dependencies:
   window_manager: ^0.5.1
   http: ^1.6.0
   shared_preferences: ^2.5.3
-  windows_toast: ^0.0.3
   flutter_screen_capture: ^2.0.1
   system_idle: ^2.0.0
   flutter_styled_toast: ^2.3.0
@@ -85,8 +84,10 @@ flutter_launcher_icons:
 flutter:
   assets :
     - assets/images/icon.png
+    - assets/images/logo.png
     - assets/images/icon.ico
     - assets/ffmpeg/ffmpeg.exe
+    - assets/config/configuration.json
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

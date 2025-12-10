@@ -1,111 +1,83 @@
-import 'dart:io';
-
-import 'package:auxtrack/helpers/periodic_capture_controller.dart';
+import 'package:auxtrack/helpers/window_modes.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:system_tray/system_tray.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:windows_toast/windows_toast.dart';
 
 import 'change_aux_page.dart';
 import 'helpers/api_controller.dart';
+import 'helpers/custom_notification.dart';
 
 // Global system tray instance
-final SystemTray systemTray = SystemTray();
+// final SystemTray systemTray = SystemTray();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await windowManager.ensureInitialized();
-
-  const windowWidth = 500.0;
-  const windowHeight = 500.0;
-
-  WindowOptions windowOptions = const WindowOptions(
-    size: Size(windowWidth, windowHeight),
-    center: true,
-    titleBarStyle: TitleBarStyle.normal,
-    windowButtonVisibility: true,
-    skipTaskbar: false,
-    alwaysOnTop: true,
-  );
-
-  await windowManager.waitUntilReadyToShow(windowOptions, () async {});
-  await windowManager.show();
-  await windowManager.focus();
-
-  await windowManager.setMinimizable(true);
-
-  await windowManager.setMaximizable(false);
-  await windowManager.setResizable(false);
-  await windowManager.setPreventClose(true);
-  await windowManager.setClosable(true);
-
   // Initialize system tray
-  await initSystemTray();
-
+  // await initSystemTray();
+  await WindowModes.normal();
   runApp(const MyApp());
 }
 
-Future<void> initSystemTray() async {
-  try {
-    // Get the executable directory for the icon
-    String path = Platform.resolvedExecutable;
-    List<String> pathSegments = path.split(Platform.pathSeparator)
-      ..removeLast();
-    String iconPath =
-        '${pathSegments.join(Platform.pathSeparator)}${Platform.pathSeparator}data${Platform.pathSeparator}flutter_assets${Platform.pathSeparator}assets${Platform.pathSeparator}images${Platform.pathSeparator}icon.ico';
-
-    // Try to initialize with icon, if fails, try without icon
-    try {
-      await systemTray.initSystemTray(
-        title: "AuxTrack",
-        iconPath: iconPath,
-        toolTip: "AuxTrack - Click to open",
-      );
-    } catch (e) {
-      print('Failed to load icon, initializing without icon: $e');
-      // Initialize without icon if icon loading fails
-    }
-
-    // Create context menu
-    final Menu menu = Menu();
-    await menu.buildFrom([
-      MenuItemLabel(
-        label: 'Show Window',
-        onClicked: (menuItem) async {
-          await windowManager.show();
-          await windowManager.focus();
-        },
-      ),
-      MenuSeparator(),
-      MenuItemLabel(
-        label: 'Exit',
-        onClicked: (menuItem) async {
-          await windowManager.destroy();
-          exit(0);
-        },
-      ),
-    ]);
-
-    await systemTray.setContextMenu(menu);
-
-    // Handle left click on tray icon
-    systemTray.registerSystemTrayEventHandler((eventName) {
-      if (eventName == kSystemTrayEventClick) {
-        // Left click - show window
-        windowManager.show();
-        windowManager.focus();
-      } else if (eventName == kSystemTrayEventRightClick) {
-        // Right click - show context menu (handled automatically)
-        systemTray.popUpContextMenu();
-      }
-    });
-  } catch (e) {
-    print('System tray initialization error: $e');
-    // Continue without system tray if it fails
-  }
-}
+// Future<void> initSystemTray() async {
+//   try {
+//     // Get the executable directory for the icon
+//     String path = Platform.resolvedExecutable;
+//     List<String> pathSegments = path.split(Platform.pathSeparator)
+//       ..removeLast();
+//     String iconPath =
+//         '${pathSegments.join(Platform.pathSeparator)}${Platform.pathSeparator}data${Platform.pathSeparator}flutter_assets${Platform.pathSeparator}assets${Platform.pathSeparator}images${Platform.pathSeparator}icon.ico';
+//
+//     // Try to initialize with icon, if fails, try without icon
+//     try {
+//       await systemTray.initSystemTray(
+//         title: "AuxTrack",
+//         iconPath: iconPath,
+//         toolTip: "AuxTrack - Click to open",
+//       );
+//     } catch (e) {
+//       print('Failed to load icon, initializing without icon: $e');
+//       // Initialize without icon if icon loading fails
+//     }
+//
+//     // Create context menu
+//     final Menu menu = Menu();
+//     await menu.buildFrom([
+//       MenuItemLabel(
+//         label: 'Show Window',
+//         onClicked: (menuItem) async {
+//           await windowManager.show();
+//           await windowManager.focus();
+//         },
+//       ),
+//       MenuSeparator(),
+//       MenuItemLabel(
+//         label: 'Exit',
+//         onClicked: (menuItem) async {
+//           await windowManager.destroy();
+//           exit(0);
+//         },
+//       ),
+//     ]);
+//
+//     await systemTray.setContextMenu(menu);
+//
+//     // Handle left click on tray icon
+//     systemTray.registerSystemTrayEventHandler((eventName) {
+//       if (eventName == kSystemTrayEventClick) {
+//         // Left click - show window
+//         windowManager.show();
+//         windowManager.focus();
+//       } else if (eventName == kSystemTrayEventRightClick) {
+//         // Right click - show context menu (handled automatically)
+//         systemTray.popUpContextMenu();
+//       }
+//     });
+//   } catch (e) {
+//     print('System tray initialization error: $e');
+//     // Continue without system tray if it fails
+//   }
+// }
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -143,17 +115,17 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> with WindowListener {
   final _formKey = GlobalKey<FormState>();
+  // final _usernameController = TextEditingController();
+  // final _passwordController = TextEditingController();
   final _usernameController = TextEditingController(text: "admin");
   final _passwordController = TextEditingController(text: "admin123");
   bool _isPasswordVisible = false;
   bool _isLoading = false;
-  final capturer = PeriodicCaptureController();
 
   @override
   void initState() {
     super.initState();
     windowManager.addListener(this);
-    capturer.startCapturing(seconds: 5);
   }
 
   @override
@@ -165,15 +137,14 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
   }
 
   // THIS IS THE KEY PART - Handle window close event
-  @override
-  void onWindowClose() async {
-    // Prevent default close behavior
-    // Instead, hide to system tray
-    await windowManager.hide();
-  }
+  // @override
+  // void onWindowClose() async {
+  //   // Prevent default close behavior
+  //   // Instead, hide to system tray
+  //   await windowManager.hide();
+  // }
 
   void _handleLogin() async {
-    capturer.stopCapturing();
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
 
@@ -187,7 +158,6 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
 
         if (success) {
           if (mounted) {
-            WindowsToast.show("Login Successfully", context, 30);
             final prefs = await SharedPreferences.getInstance();
 
             final accessToken = prefs.getString("accessToken");
@@ -244,7 +214,7 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24, top: 5),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -254,27 +224,12 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
                     ClipOval(
                       child: Image.asset(
                         'assets/images/icon.png',
-                        width: 100,
-                        height: 100,
+                        width: 74,
+                        height: 74,
                         fit: BoxFit.cover,
                       ),
                     ),
-                    const SizedBox(height: 24),
-
-                    // Title
-                    const Text(
-                      'Welcome Back',
-                      style: TextStyle(fontSize: 26, color: Colors.white),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Sign in to continue',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.white.withOpacity(0.8),
-                      ),
-                    ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 15),
 
                     // Username Field
                     TextFormField(

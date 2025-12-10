@@ -47,19 +47,28 @@ class PeriodicCaptureController {
   // --- Helper Methods ---
 
   Future<String> _buildCapturePath() async {
-    final documentsDir = await getApplicationDocumentsDirectory();
-    // Use an AuxTracker subfolder in Documents
+    // ----------------------------------------------------
+    // CHANGE THIS LINE:
+    // final documentsDir = await getApplicationDocumentsDirectory();
+    // TO THIS LINE:
+    final appDataDir = await getApplicationSupportDirectory();
+    // ----------------------------------------------------
+
+    // Use an AuxTracker subfolder in AppData
     final yearMonth = DateFormat('yyyyMM').format(DateTime.now());
     final day = DateFormat('dd').format(DateTime.now());
     final captureFolder = Directory(
-      '${documentsDir.path}${Platform.pathSeparator}AuxTracker/$yearMonth/$day',
+      // ----------------------------------------------------
+      // AND CHANGE THE VARIABLE NAME HERE:
+      '${appDataDir.path}${Platform.pathSeparator}AuxTracker/$yearMonth/$day',
+      // ----------------------------------------------------
     );
 
     if (!await captureFolder.exists()) {
       await captureFolder.create(recursive: true);
     }
 
-    // Load user info for file naming
+    // Load user info for file naming (rest of the code is the same)
     final userInfo = await ApiController.instance.loadUserInfo();
     final userId = userInfo?['id'] ?? 'Guest';
     final timestamp = DateFormat('HHmmss').format(DateTime.now());
@@ -76,7 +85,7 @@ class PeriodicCaptureController {
     try {
       final ffmpegPath = _ffmpegPath;
       final screenshotPath = await _buildCapturePath();
-
+      // print(screenshotPath);
       // Arguments to capture a single, silent frame using gdigrab
       final arguments = [
         '-f', 'gdigrab',

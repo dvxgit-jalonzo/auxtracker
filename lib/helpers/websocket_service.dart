@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:auxtrack/helpers/api_controller.dart';
+import 'package:auxtrack/helpers/configuration.dart';
 import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -26,8 +27,6 @@ class WebSocketService {
   Stream<Map<String, dynamic>> get messageStream => _messageController.stream;
 
   // Hardcoded connection details
-  static const String _androidHost = "127.0.0.1:8080";
-  static const String _reverbAppKey = "jl8hdc0f7s5s7xept132";
 
   Future<void> connect() async {
     if (_isConnected) {
@@ -44,7 +43,11 @@ class WebSocketService {
       debugPrint("Websocket Connecting...");
 
       final userInfo = await ApiController.instance.loadUserInfo();
-
+      final reverb = await ApiController.instance.loadReverbAppKey();
+      final wsHost = await Configuration.instance.get("wsHost");
+      if (reverb == null) {
+        throw Exception("reverb app key not found");
+      }
       if (userInfo == null || userInfo['id'] == null) {
         throw Exception('websocket User info not found. Please login first.');
       }
@@ -53,7 +56,7 @@ class WebSocketService {
 
       _channel = IOWebSocketChannel.connect(
         Uri.parse(
-          'ws://$_androidHost/app/$_reverbAppKey?protocol=7&client=js&version=4.4.0&flash=false',
+          'ws://$wsHost/app/${reverb['key']}?protocol=7&client=js&version=4.4.0&flash=false',
         ),
       );
 
@@ -61,7 +64,14 @@ class WebSocketService {
       _channel!.sink.add(
         json.encode({
           "event": "pusher:subscribe",
-          "data": {"channel": "personalBreakResponseEvent$employeeId"},
+          "data": {"channel": "personalBreakResponseEvent.$employeeId"},
+        }),
+      );
+
+      _channel!.sink.add(
+        json.encode({
+          "event": "pusher:subscribe",
+          "data": {"channel": "logoutEmployeeEvent.$employeeId"},
         }),
       );
 
@@ -87,52 +97,16 @@ class WebSocketService {
 
   void _onMessage(dynamic data) {
     try {
+      print("raw data : $data");
       Map<String, dynamic> jsonMap = jsonDecode(data);
       final String? event = jsonMap['event'];
 
       if (event == "pusher:ping") {
-        final pongMessage = jsonEncode({'event': 'pusher:pong'});
-        if (kDebugMode) {
-          print("📥 ← $data");
-          print("📤 → $pongMessage");
-        }
-
-        _channel!.sink.add(pongMessage);
-        if (kDebugMode) {
-          print("✅ pong sent");
-        }
-      } else if (event == "pusher:subscription_succeeded") {
-        if (kDebugMode) {
-          print("✅ Subscribed to channel: ${jsonMap['channel']}");
-        }
-      } else {
-        // Log the full message for debugging
-        if (kDebugMode) {
-          print("📨 Event: $event");
-          print("📦 Full data: $data");
-        }
-
-        // Extract the actual event data
-        if (jsonMap.containsKey('data')) {
-          final eventData = jsonMap['data'];
-          final parsedData = eventData is String
-              ? jsonDecode(eventData)
-              : eventData;
-
-          if (kDebugMode) {
-            print("📋 Parsed data: $parsedData");
-          }
-
-          // Add to stream with event name and data
-          _messageController.add({
-            'event': event,
-            'channel': jsonMap['channel'],
-            'data': parsedData,
-          });
-        } else {
-          _messageController.add(jsonMap);
-        }
+        _channel!.sink.add(jsonEncode({'event': 'pusher:pong'}));
+        return;
       }
+      final eventData = jsonDecode(jsonMap['data']);
+      _messageController.add({'event': event, 'data': eventData});
     } catch (e) {
       debugPrint("Error processing message: $e");
     }
