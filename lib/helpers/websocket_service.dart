@@ -28,7 +28,6 @@ class WebSocketService {
 
   // Hardcoded connection details
 
-
   Future<void> connect() async {
     if (_isConnected) {
       _logOnce("WS connected");
@@ -46,7 +45,7 @@ class WebSocketService {
       final userInfo = await ApiController.instance.loadUserInfo();
       final reverb = await ApiController.instance.loadReverbAppKey();
       final wsHost = await Configuration.instance.get("wsHost");
-      if(reverb == null){
+      if (reverb == null) {
         throw Exception("reverb app key not found");
       }
       if (userInfo == null || userInfo['id'] == null) {
@@ -65,15 +64,16 @@ class WebSocketService {
       _channel!.sink.add(
         json.encode({
           "event": "pusher:subscribe",
-          "data": {"channel": "personalBreakResponseEvent$employeeId"},
+          "data": {"channel": "personalBreakResponseEvent.$employeeId"},
         }),
       );
-      // _channel!.sink.add(
-      //   json.encode({
-      //     "event": "pusher:subscribe",
-      //     "data": {"channel": "logoutEmployeeEvent$employeeId"},
-      //   }),
-      // );
+
+      _channel!.sink.add(
+        json.encode({
+          "event": "pusher:subscribe",
+          "data": {"channel": "logoutEmployeeEvent.$employeeId"},
+        }),
+      );
 
       _isConnected = true;
       _reconnectAttempts = 0;
@@ -97,34 +97,16 @@ class WebSocketService {
 
   void _onMessage(dynamic data) {
     try {
+      print("raw data : $data");
       Map<String, dynamic> jsonMap = jsonDecode(data);
       final String? event = jsonMap['event'];
 
       if (event == "pusher:ping") {
-        final pongMessage = jsonEncode({'event': 'pusher:pong'});
-        _channel!.sink.add(pongMessage);
-      } else if (event == "pusher:subscription_succeeded") {
-        if (kDebugMode) {
-          print("✅ Subscribed to channel: ${jsonMap['channel']}");
-        }
-      } else {
-
-        if (jsonMap.containsKey('data')) {
-          final eventData = jsonMap['data'];
-          final parsedData = eventData is String
-              ? jsonDecode(eventData)
-              : eventData;
-
-          _messageController.add({
-            'event': event,
-            'channel': jsonMap['channel'],
-            'data': parsedData,
-          });
-        }
-        // Log the full message for debugging
-        // Extract the actual event data
-
+        _channel!.sink.add(jsonEncode({'event': 'pusher:pong'}));
+        return;
       }
+      final eventData = jsonDecode(jsonMap['data']);
+      _messageController.add({'event': event, 'data': eventData});
     } catch (e) {
       debugPrint("Error processing message: $e");
     }

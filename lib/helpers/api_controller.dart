@@ -9,8 +9,6 @@ class ApiController {
   ApiController._privateConstructor();
   static final ApiController instance = ApiController._privateConstructor();
 
-
-
   String? _accessToken;
 
   /// Load token from SharedPreferences
@@ -27,7 +25,6 @@ class ApiController {
     await prefs.setString('accessToken', token);
   }
 
-
   Future<void> getReverbAppKey() async {
     try {
       final host = await Configuration.instance.get("host");
@@ -39,7 +36,9 @@ class ApiController {
         final data = jsonDecode(response.body);
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('reverbAppKey', jsonEncode(data));
-        print('Reverb App Key fetched and saved to local storage successfully.');
+        print(
+          'Reverb App Key fetched and saved to local storage successfully.',
+        );
       } else {
         print(
           'Failed to fetch Reverb: ${response.statusCode} - ${response.body}',
@@ -67,7 +66,10 @@ class ApiController {
       final siteId = userInfo['site_id'].toString();
       final employeeId = userInfo['id'].toString();
 
-      Map<String, dynamic> params = {"site_id": siteId, "employee_id" : employeeId};
+      Map<String, dynamic> params = {
+        "site_id": siteId,
+        "employee_id": employeeId,
+      };
 
       final headers = await _headers();
 
@@ -92,8 +94,6 @@ class ApiController {
       rethrow;
     }
   }
-
-
 
   /// Login using username and password
   Future login(String username, String password) async {
@@ -233,8 +233,6 @@ class ApiController {
       final idleStatus = isIdle ? "1" : "0";
       final userInfo = await loadUserInfo();
 
-      print(userInfo);
-
       if (userInfo == null || userInfo['id'] == null) {
         throw Exception(
           'create employee idle User info not found. Please login first.',
@@ -251,12 +249,12 @@ class ApiController {
           'employee_id': employeeId,
           'site_id': siteId,
           'timezone': timezone,
-          'status' : idleStatus
+          'status': idleStatus,
         }),
       );
 
       if (response.statusCode == 200) {
-        print('Employee idle status updated successfully.');
+        print('Employee idle status updated to $isIdle successfully.');
       } else {
         print(
           'Failed to update idle status. Status: ${response.statusCode}, Body: ${response.body}',
@@ -282,6 +280,7 @@ class ApiController {
     }
     return null;
   }
+
   Future<Map<String, dynamic>?> loadReverbAppKey() async {
     final prefs = await SharedPreferences.getInstance();
     final revertAppKey = prefs.getString('reverbAppKey');
@@ -290,8 +289,6 @@ class ApiController {
     }
     return null;
   }
-
-
 
   /// Get user info from API and save to localStorage (no return)
   Future<void> getUserInfo() async {

@@ -37,6 +37,57 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   Duration _elapsedTime = Duration.zero;
   String _formattedTime = "00:00:00";
 
+  // StreamSubscription<bool>? _idleSubscription;
+  String? _currentStatus;
+  @override
+  void initState() {
+    super.initState();
+    WindowModes.restricted();
+    windowManager.addListener(this);
+    _loadAuxiliariesFromLocal();
+    IdleService.instance.initialize();
+    // _idleSubscription = IdleService.instance.idleStateStream.listen((isIdle) {
+    //   ApiController.instance.createEmployeeIdle(isIdle);
+    // });
+
+    WebSocketService().connect();
+    WebSocketService().messageStream.listen((message) {
+      if (message['event'] == "personalBreakResponse") {
+        final data = message['data'];
+        final status = data['status'];
+        setState(() {
+          _currentStatus = status;
+        });
+        if (status == "APPROVED") {
+          _createEmployeeLogPersonalBreak();
+        }
+      }
+
+      if (message['event'] == "logoutEmployeeEvent") {
+        final data = message['data'];
+        final employeeId = data['employee_id'];
+        _handleLogout();
+      }
+    });
+
+    _createEmployeeLogTimeIn();
+    _startScreenCapturing();
+    // _startScreenRecording();
+  }
+
+  @override
+  void dispose() {
+    windowManager.removeListener(this);
+    // _idleSubscription?.cancel();
+    _tabController?.dispose();
+    WebSocketService().disconnect();
+    // _stopScreenRecording();
+    capturer.stopCapturing();
+    _timer?.cancel();
+    IdleService.instance.dispose();
+    super.dispose();
+  }
+
   void _dismissStatus() {
     setState(() {
       _currentStatus = null; // Setting to null hides the widget
@@ -70,57 +121,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     return "$hours:$minutes:$seconds";
   }
 
-  // @override
-  // void onWindowClose() async {
-  //   // Prevent default close behavior
-  //   // Instead, hide to system tray
-  //   await windowManager.hide();
-  // }
-
-  StreamSubscription<bool>? _idleSubscription;
-  String? _currentStatus;
-  @override
-  void initState() {
-    super.initState();
-    WindowModes.restricted();
-    windowManager.addListener(this);
-    _loadAuxiliariesFromLocal();
-    IdleService.instance.initialize();
-    _idleSubscription = IdleService.instance.idleStateStream.listen((isIdle) {
-      ApiController.instance.createEmployeeIdle(isIdle);
-    });
-
-    WebSocketService().connect();
-    WebSocketService().messageStream.listen((message) {
-      print('Received: ${message['event']}');
-      final data = message['data'];
-      print("data : $data");
-      if(data != null){
-        if(data['logout'] == true){
-          print("Logging out..");
-          ApiController.instance.createEmployeeLog("OFF");
-          _handleLogout();
-        }
-      }
-      // if(data == "logout"){
-
-      // }else if (data != null &&
-      //     data is Map<String, dynamic> &&
-      //     data.containsKey('status')) {
-      //   if (data['status'] == "APPROVED") {
-      //     _createEmployeeLogPersonalBreak();
-      //   }
-      //   setState(() {
-      //     _currentStatus = data['status'].toString();
-      //   });
-      // }
-    });
-
-    _createEmployeeLogTimeIn();
-    _startScreenCapturing();
-    // _startScreenRecording();
-  }
-
   Future<void> _startScreenCapturing() async {
     final userInfo = await ApiController.instance.loadUserInfo();
     if (userInfo == null) {
@@ -135,58 +135,10 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     await ApiController.instance.createEmployeeLog("Personal Break");
   }
 
-  // void _startScreenRecording() async {
-  //   final userInfo = await ApiController.instance.loadUserInfo();
-  //   if (userInfo == null || userInfo['id'] == null) {
-  //     throw Exception(
-  //       'start recording User info not found. Please login first.',
-  //     );
-  //   }
-  //   final isEnableScreenCapture = userInfo['enable_screen_capture'];
-  //   if (isEnableScreenCapture == 1) {
-  //     try {
-  //       await recorder.startRecording();
-  //     } catch (e) {
-  //       print('Error starting screen recording: $e');
-  //     }
-  //   }
-  // }
-  //
-  // void _stopScreenRecording() async {
-  //   final userInfo = await ApiController.instance.loadUserInfo();
-  //   if (userInfo == null || userInfo['id'] == null) {
-  //     throw Exception(
-  //       'stop recording User info not found. Please login first.',
-  //     );
-  //   }
-  //   final isEnableScreenCapture = userInfo['enable_screen_capture'];
-  //   if (isEnableScreenCapture == 1) {
-  //     try {
-  //       await recorder.stopRecording();
-  //       print('Stop command sent');
-  //     } catch (e) {
-  //       print('Error stopping screen recording: $e');
-  //     }
-  //   }
-  // }
-
   void _createEmployeeLogTimeIn() async {
     await ApiController.instance.createEmployeeLog("Time In");
     _startTimer();
     CustomNotification.info(context, "Aux set to Time In.");
-  }
-
-  @override
-  void dispose() {
-    windowManager.removeListener(this);
-    _idleSubscription?.cancel();
-    _tabController?.dispose();
-    WebSocketService().disconnect();
-    // _stopScreenRecording();
-    capturer.stopCapturing();
-    _timer?.cancel();
-    IdleService.instance.dispose();
-    super.dispose();
   }
 
   IconData _getCategoryIcon(String category) {
@@ -249,9 +201,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     try {
       final userInfo = await ApiController.instance.loadUserInfo();
       if (userInfo == null || userInfo['id'] == null) {
-        throw Exception(
-          'change aux User info not found. Please login first.',
-        );
+        throw Exception('change aux User info not found. Please login first.');
       }
       await ApiController.instance.createEmployeeLog("OFF");
 
@@ -436,7 +386,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
 
     if (result == true) {
       if (mounted) {
-
         _handleLogout();
         final message = "Aux set to OFF";
         CustomNotification.info(context, message);
@@ -615,15 +564,21 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
               final message = "Request Sent";
               CustomNotification.info(context, message);
             } else {
-              CustomNotification.error(context, "Failed to request Personal Break");
+              CustomNotification.error(
+                context,
+                "Failed to request Personal Break",
+              );
             }
           }
         } catch (e) {
           if (mounted) {
-            CustomNotification.error(context, "Failed to request Personal Break");
+            CustomNotification.error(
+              context,
+              "Failed to request Personal Break",
+            );
           }
         }
-      }else{
+      } else {
         setState(() {
           _selectedAux = null;
         });
@@ -672,9 +627,9 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                         color: Colors.white.withOpacity(0.15),
                         shape: BoxShape.circle,
                       ),
-                      // asdf
 
-                      child:   Icon(
+                      // asdf
+                      child: Icon(
                         _getCategoryIcon(_selectedAux!['main']),
                         color: Colors.white,
                         size: 34,
@@ -785,7 +740,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
 
     if (result == true) {
       if (mounted) {
-
         if (_selectedAux!['sub'] == "OFF") {
           _handleLogout();
         } else {
@@ -954,7 +908,9 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                 ),
                               ),
                               child: Container(
-                                padding: const EdgeInsets.all(8), // Equal padding on all sides
+                                padding: const EdgeInsets.all(
+                                  8,
+                                ), // Equal padding on all sides
                                 decoration: BoxDecoration(
                                   color: Colors.grey.shade900,
                                   shape: BoxShape.circle, // Changed to circle
@@ -1124,65 +1080,89 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                 // --- NEW: Status Indicator Overlay ---
                 if (_currentStatus != null)
                   Positioned(
-                    top: 20, // Sit slightly below the very top edge
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: GestureDetector(
-                        // Added GestureDetector for dismiss
-                        onTap: _dismissStatus, // Call the new dismiss method
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            // --- UPDATED: Deep Purple/Magenta Gradient ---
-                            gradient: LinearGradient(
-                              colors: [
-                                Colors.deepPurple.shade500,
-                                Colors.blue.shade900,
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(10),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.4),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
+                    top: 20,
+                    left: 8, // Add padding from edges
+                    right: 8,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        // Determine size based on available width
+                        final isNarrow = constraints.maxWidth < 300;
+                        final isVeryNarrow = constraints.maxWidth < 200;
+
+                        return Center(
+                          child: GestureDetector(
+                            onTap: _dismissStatus,
+                            child: Container(
+                              constraints: BoxConstraints(
+                                maxWidth:
+                                    constraints.maxWidth -
+                                    16, // Prevent overflow
                               ),
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.notifications_active_rounded,
-                                color: Colors.white,
-                                size: 18,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: isVeryNarrow
+                                    ? 8
+                                    : (isNarrow ? 12 : 16),
+                                vertical: isVeryNarrow
+                                    ? 6
+                                    : (isNarrow ? 8 : 10),
                               ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Personal Brake has been $_currentStatus',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 13,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.deepPurple.shade500,
+                                    Colors.blue.shade900,
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
                                 ),
+                                borderRadius: BorderRadius.circular(10),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.4),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 10),
-                              // Subtle close indicator
-                              Icon(
-                                Icons.close,
-                                color: Colors.white.withOpacity(0.7),
-                                size: 16,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  // Hide icon on very narrow screens
+                                  if (!isVeryNarrow) ...[
+                                    Icon(
+                                      Icons.notifications_active_rounded,
+                                      color: Colors.white,
+                                      size: isNarrow ? 16 : 18,
+                                    ),
+                                    SizedBox(width: isNarrow ? 6 : 8),
+                                  ],
+                                  // Flexible text that wraps or truncates
+                                  Flexible(
+                                    child: Text(
+                                      'Personal Brake has been $_currentStatus',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: isVeryNarrow
+                                            ? 11
+                                            : (isNarrow ? 12 : 13),
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: isVeryNarrow ? 1 : 2,
+                                    ),
+                                  ),
+                                  SizedBox(width: isNarrow ? 6 : 10),
+                                  Icon(
+                                    Icons.close,
+                                    color: Colors.white.withOpacity(0.7),
+                                    size: isNarrow ? 14 : 16,
+                                  ),
+                                ],
                               ),
-                            ],
+                            ),
                           ),
-                        ),
-                      ),
+                        );
+                      },
                     ),
                   ),
               ],
@@ -1225,14 +1205,11 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: isSelected
-                          ? [
-                        Colors.lightBlue.shade600,
-                        Colors.indigo.shade800,
-                      ]
+                          ? [Colors.lightBlue.shade600, Colors.indigo.shade800]
                           : [
-                        Colors.white.withOpacity(0.15),
-                        Colors.white.withOpacity(0.08),
-                      ],
+                              Colors.white.withOpacity(0.15),
+                              Colors.white.withOpacity(0.08),
+                            ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -1245,19 +1222,19 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                     ),
                     boxShadow: isSelected
                         ? [
-                      BoxShadow(
-                        color: Colors.cyanAccent.withOpacity(0.3),
-                        blurRadius: 10,
-                        spreadRadius: 2,
-                      ),
-                    ]
+                            BoxShadow(
+                              color: Colors.cyanAccent.withOpacity(0.3),
+                              blurRadius: 10,
+                              spreadRadius: 2,
+                            ),
+                          ]
                         : [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
-                        blurRadius: 3,
-                        offset: const Offset(1, 1),
-                      ),
-                    ],
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.3),
+                              blurRadius: 3,
+                              offset: const Offset(1, 1),
+                            ),
+                          ],
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -1268,16 +1245,23 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             FittedBox(
-                              fit: BoxFit.scaleDown, // Mag-shrink ang font if needed
+                              fit: BoxFit
+                                  .scaleDown, // Mag-shrink ang font if needed
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                ),
                                 child: Text(
                                   aux.sub,
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
-                                    color: isSelected ? Colors.white : Colors.white70,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : Colors.white70,
                                     fontSize: 13,
-                                    fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w900
+                                        : FontWeight.w600,
                                     letterSpacing: 0.8,
                                   ),
                                   maxLines: null,

@@ -43,7 +43,7 @@ class VideoRecorderController {
   }
 
   Future<String> _buildOutputPath() async {
-    final documentsDir = await getApplicationDocumentsDirectory();
+    final documentsDir = await getApplicationSupportDirectory();
     final auxTrackerFolder = Directory(
       '${documentsDir.path}${Platform.pathSeparator}AuxTracker Recordings',
     );
