@@ -1,10 +1,11 @@
-import 'package:elegant_notification/elegant_notification.dart';
+import 'package:auxtrack/helpers/window_modes.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'change_aux_page.dart';
 import 'helpers/api_controller.dart';
+import 'helpers/custom_notification.dart';
 
 // Global system tray instance
 // final SystemTray systemTray = SystemTray();
@@ -12,36 +13,9 @@ import 'helpers/api_controller.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await windowManager.ensureInitialized();
-
-  const windowWidth = 400.0;
-  const windowHeight = 500.0;
-
-  WindowOptions windowOptions = const WindowOptions(
-    size: Size(windowWidth, windowHeight),
-    center: true,
-    titleBarStyle: TitleBarStyle.normal,
-    windowButtonVisibility: false,
-    skipTaskbar: false,
-    alwaysOnTop: true,
-    title: "Auxiliary Tracker",
-  );
-
-  await windowManager.waitUntilReadyToShow(windowOptions, () async {
-    await windowManager.show();
-    await windowManager.focus();
-
-    await windowManager.setMinimizable(true);
-
-    await windowManager.setMaximizable(false);
-    await windowManager.setResizable(false);
-    await windowManager.setPreventClose(false);
-    await windowManager.setClosable(true);
-  });
-
   // Initialize system tray
   // await initSystemTray();
-
+  await WindowModes.normal();
   runApp(const MyApp());
 }
 
@@ -141,10 +115,10 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> with WindowListener {
   final _formKey = GlobalKey<FormState>();
-  final _usernameController = TextEditingController();
-  final _passwordController = TextEditingController();
-  // final _usernameController = TextEditingController(text: "admin");
-  // final _passwordController = TextEditingController(text: "admin123");
+  // final _usernameController = TextEditingController();
+  // final _passwordController = TextEditingController();
+  final _usernameController = TextEditingController(text: "admin");
+  final _passwordController = TextEditingController(text: "admin123");
   bool _isPasswordVisible = false;
   bool _isLoading = false;
 
@@ -184,10 +158,6 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
 
         if (success) {
           if (mounted) {
-            ElegantNotification.success(
-              title: Text("Success"),
-              description: Text("Login Successful"),
-            ).show(context);
             final prefs = await SharedPreferences.getInstance();
 
             final accessToken = prefs.getString("accessToken");
@@ -244,7 +214,7 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24, top: 5),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -254,20 +224,12 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
                     ClipOval(
                       child: Image.asset(
                         'assets/images/icon.png',
-                        width: 100,
-                        height: 100,
+                        width: 74,
+                        height: 74,
                         fit: BoxFit.cover,
                       ),
                     ),
-                    const SizedBox(height: 24),
-
-                    // Title
-                    const Text(
-                      'Welcome Back',
-                      style: TextStyle(fontSize: 26, color: Colors.white),
-                    ),
-
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 15),
 
                     // Username Field
                     TextFormField(

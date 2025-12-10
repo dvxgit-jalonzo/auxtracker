@@ -68,6 +68,12 @@ class WebSocketService {
           "data": {"channel": "personalBreakResponseEvent$employeeId"},
         }),
       );
+      // _channel!.sink.add(
+      //   json.encode({
+      //     "event": "pusher:subscribe",
+      //     "data": {"channel": "logoutEmployeeEvent$employeeId"},
+      //   }),
+      // );
 
       _isConnected = true;
       _reconnectAttempts = 0;
@@ -96,43 +102,28 @@ class WebSocketService {
 
       if (event == "pusher:ping") {
         final pongMessage = jsonEncode({'event': 'pusher:pong'});
-        if (kDebugMode) {
-          print("📥 ← $data");
-          print("📤 → $pongMessage");
-        }
-
         _channel!.sink.add(pongMessage);
-        if (kDebugMode) {
-          print("✅ pong sent");
-        }
       } else if (event == "pusher:subscription_succeeded") {
         if (kDebugMode) {
           print("✅ Subscribed to channel: ${jsonMap['channel']}");
         }
       } else {
-        // Log the full message for debugging
-        // Extract the actual event data
+
         if (jsonMap.containsKey('data')) {
           final eventData = jsonMap['data'];
           final parsedData = eventData is String
               ? jsonDecode(eventData)
               : eventData;
 
-          if (kDebugMode) {
-            print("📋 Parsed data: ${parsedData['status']}");
-          }
-
-
-
-          // Add to stream with event name and data
           _messageController.add({
             'event': event,
             'channel': jsonMap['channel'],
             'data': parsedData,
           });
-        } else {
-          _messageController.add(jsonMap);
         }
+        // Log the full message for debugging
+        // Extract the actual event data
+
       }
     } catch (e) {
       debugPrint("Error processing message: $e");

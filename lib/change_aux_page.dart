@@ -2,10 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
 
+import 'package:auxtrack/helpers/custom_notification.dart';
 import 'package:auxtrack/helpers/periodic_capture_controller.dart';
 import 'package:auxtrack/helpers/websocket_service.dart';
 import 'package:auxtrack/helpers/window_modes.dart';
-import 'package:elegant_notification/elegant_notification.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -93,19 +93,27 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     WebSocketService().connect();
     WebSocketService().messageStream.listen((message) {
       print('Received: ${message['event']}');
-
-      // Extract 'status' if it exists
       final data = message['data'];
-      if (data != null &&
-          data is Map<String, dynamic> &&
-          data.containsKey('status')) {
-        if (data['status'] == "APPROVED") {
-          _createEmployeeLogPersonalBreak();
+      print("data : $data");
+      if(data != null){
+        if(data['logout'] == true){
+          print("Logging out..");
+          ApiController.instance.createEmployeeLog("OFF");
+          _handleLogout();
         }
-        setState(() {
-          _currentStatus = data['status'].toString();
-        });
       }
+      // if(data == "logout"){
+
+      // }else if (data != null &&
+      //     data is Map<String, dynamic> &&
+      //     data.containsKey('status')) {
+      //   if (data['status'] == "APPROVED") {
+      //     _createEmployeeLogPersonalBreak();
+      //   }
+      //   setState(() {
+      //     _currentStatus = data['status'].toString();
+      //   });
+      // }
     });
 
     _createEmployeeLogTimeIn();
@@ -165,7 +173,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   void _createEmployeeLogTimeIn() async {
     await ApiController.instance.createEmployeeLog("Time In");
     _startTimer();
-    print("Time In already sent to the server");
+    CustomNotification.info(context, "Aux set to Time In.");
   }
 
   @override
@@ -176,8 +184,8 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     WebSocketService().disconnect();
     // _stopScreenRecording();
     capturer.stopCapturing();
-
     _timer?.cancel();
+    IdleService.instance.dispose();
     super.dispose();
   }
 
@@ -192,7 +200,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       case 'OTHER':
         return Icons.more_horiz_rounded;
       case 'LOG OFF':
-        return Icons.logout_rounded;
+        return Icons.settings_power_rounded;
       default:
         return Icons.category_rounded;
     }
@@ -239,6 +247,16 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
 
   Future<void> _handleLogout() async {
     try {
+      final userInfo = await ApiController.instance.loadUserInfo();
+      if (userInfo == null || userInfo['id'] == null) {
+        throw Exception(
+          'change aux User info not found. Please login first.',
+        );
+      }
+      await ApiController.instance.createEmployeeLog("OFF");
+
+      // _stopScreenRecording();
+      capturer.stopCapturing();
       await ApiController.instance.logout();
       await WindowModes.normal();
       if (mounted) {
@@ -308,7 +326,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
-                        Icons.help_outline_rounded,
+                        Icons.settings_power,
                         color: Colors.white,
                         size: 34,
                       ),
@@ -418,21 +436,10 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
 
     if (result == true) {
       if (mounted) {
-        await ApiController.instance.createEmployeeLog("OFF");
-        final userInfo = await ApiController.instance.loadUserInfo();
-        if (userInfo == null || userInfo['id'] == null) {
-          throw Exception(
-            'change aux User info not found. Please login first.',
-          );
-        }
 
-        // _stopScreenRecording();
-        capturer.stopCapturing();
         _handleLogout();
-        ElegantNotification.success(
-          title: Text("Success"),
-          description: Text("OFF has been saved."),
-        ).show(context);
+        final message = "Aux set to OFF";
+        CustomNotification.info(context, message);
       }
     }
   }
@@ -579,7 +586,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                 elevation: 6,
                               ),
                               child: const Text(
-                                'Request Break',
+                                'Request',
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
@@ -605,25 +612,21 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
           );
           if (mounted) {
             if (success) {
-              ElegantNotification.success(
-                title: Text("Request Sent"),
-                description: Text("Please wait for confirmation."),
-              ).show(context);
+              final message = "Request Sent";
+              CustomNotification.info(context, message);
             } else {
-              ElegantNotification.error(
-                title: Text("Error"),
-                description: Text("Failed to request Personal Break"),
-              ).show(context);
+              CustomNotification.error(context, "Failed to request Personal Break");
             }
           }
         } catch (e) {
           if (mounted) {
-            ElegantNotification.error(
-              title: Text("Error"),
-              description: Text("Failed to request Personal Break: $e"),
-            ).show(context);
+            CustomNotification.error(context, "Failed to request Personal Break");
           }
         }
+      }else{
+        setState(() {
+          _selectedAux = null;
+        });
       }
       return; // Exit early for Personal Break
     }
@@ -669,8 +672,10 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                         color: Colors.white.withOpacity(0.15),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.help_outline_rounded,
+                      // asdf
+
+                      child:   Icon(
+                        _getCategoryIcon(_selectedAux!['main']),
                         color: Colors.white,
                         size: 34,
                       ),
@@ -780,31 +785,29 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
 
     if (result == true) {
       if (mounted) {
-        await ApiController.instance.createEmployeeLog(_selectedAux!['sub']);
-        final userInfo = await ApiController.instance.loadUserInfo();
-        if (userInfo == null || userInfo['id'] == null) {
-          throw Exception(
-            'change aux User info not found. Please login first.',
-          );
-        }
+
         if (_selectedAux!['sub'] == "OFF") {
-          // _stopScreenRecording();
-          capturer.stopCapturing();
           _handleLogout();
         } else {
+          final userInfo = await ApiController.instance.loadUserInfo();
+          if (userInfo == null || userInfo['id'] == null) {
+            throw Exception(
+              'change aux User info not found. Please login first.',
+            );
+          }
+          await ApiController.instance.createEmployeeLog(_selectedAux!['sub']);
           _startTimer();
         }
+
         setState(() {
           _stateAux = _selectedAux!['sub'];
         });
-        ElegantNotification.success(
-          title: Text("Success"),
-          description: Text("${_selectedAux!['sub']} has been saved."),
-        ).show(context);
+        final message = "Aux set to ${_selectedAux!['sub']}";
+        CustomNotification.info(context, message);
       }
     } else {
       setState(() {
-        _selectedAux = null; // Ito ang magpapakita na 'di na selected ang item
+        _selectedAux = null;
       });
     }
   }
@@ -933,13 +936,10 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                               _requestLogout();
                             },
                             child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 1.5,
-                                vertical: 1.5,
-                              ),
+                              padding: const EdgeInsets.all(1.5),
                               decoration: BoxDecoration(
                                 color: Colors.white,
-                                borderRadius: BorderRadius.circular(40),
+                                shape: BoxShape.circle, // Changed to circle
                                 boxShadow: [
                                   BoxShadow(
                                     color: Colors.deepPurple,
@@ -954,23 +954,15 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                 ),
                               ),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 8,
-                                ),
+                                padding: const EdgeInsets.all(8), // Equal padding on all sides
                                 decoration: BoxDecoration(
                                   color: Colors.grey.shade900,
-                                  borderRadius: BorderRadius.circular(40),
+                                  shape: BoxShape.circle, // Changed to circle
                                 ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.settings_power,
-                                      size: 15,
-                                      color: Colors.deepOrange.shade500,
-                                    ),
-                                  ],
+                                child: Icon(
+                                  Icons.settings_power,
+                                  size: 15,
+                                  color: Colors.deepOrange.shade500,
                                 ),
                               ),
                             ),
@@ -1205,7 +1197,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     return Padding(
       padding: const EdgeInsets.all(20),
       child: GridView.builder(
-        // Ginawang mas wide at mas mababa ang mga box (childAspectRatio: 3.5)
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           crossAxisSpacing: 10.0,
@@ -1235,89 +1226,74 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                     gradient: LinearGradient(
                       colors: isSelected
                           ? [
-                              Colors.lightBlue.shade600,
-                              Colors.indigo.shade800,
-                            ] // Mas vibrant na selection colors
+                        Colors.lightBlue.shade600,
+                        Colors.indigo.shade800,
+                      ]
                           : [
-                              Colors.white.withOpacity(
-                                0.15,
-                              ), // Mas visible na base
-                              Colors.white.withOpacity(0.08),
-                            ],
+                        Colors.white.withOpacity(0.15),
+                        Colors.white.withOpacity(0.08),
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: isSelected
-                          ? Colors.cyanAccent.shade400.withOpacity(
-                              0.8,
-                            ) // Mas matingkad na border
+                          ? Colors.cyanAccent.shade400.withOpacity(0.8)
                           : Colors.white.withOpacity(0.15),
-                      width: isSelected ? 2.5 : 1.0, // Mas makapal na border
+                      width: isSelected ? 2.5 : 1.0,
                     ),
                     boxShadow: isSelected
                         ? [
-                            BoxShadow(
-                              color: Colors.cyanAccent.withOpacity(0.3),
-                              blurRadius: 10, // Mas malaking glow
-                              spreadRadius: 2,
-                            ),
-                          ]
+                      BoxShadow(
+                        color: Colors.cyanAccent.withOpacity(0.3),
+                        blurRadius: 10,
+                        spreadRadius: 2,
+                      ),
+                    ]
                         : [
-                            // Nagdagdag ng subtle shadow sa unselected
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.3),
-                              blurRadius: 3,
-                              offset: const Offset(1, 1),
-                            ),
-                          ],
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 3,
+                        offset: const Offset(1, 1),
+                      ),
+                    ],
                   ),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment
-                        .center, // **Naka-center na ang buong content**
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       // Text ng Auxiliary
                       Expanded(
                         child: Column(
-                          mainAxisAlignment: MainAxisAlignment
-                              .center, // **Naka-center vertically**
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(
-                              aux.sub,
-                              textAlign: TextAlign
-                                  .center, // **Naka-center horizontally ang text**
-                              style: TextStyle(
-                                color: isSelected
-                                    ? Colors.white
-                                    : Colors.white70,
-                                fontSize: 13, // Medyo nilakihan ang font size
-                                fontWeight: isSelected
-                                    ? FontWeight.w900
-                                    : FontWeight.w600,
-                                letterSpacing: 0.8, // Medyo pinalayo ang letra
+                            FittedBox(
+                              fit: BoxFit.scaleDown, // Mag-shrink ang font if needed
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                                child: Text(
+                                  aux.sub,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: isSelected ? Colors.white : Colors.white70,
+                                    fontSize: 13,
+                                    fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
+                                    letterSpacing: 0.8,
+                                  ),
+                                  maxLines: null,
+                                ),
                               ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
                             ),
                           ],
                         ),
                       ),
 
-                      // Selection indicator (Check Mark) - Nilabas ko muna ito sa Row kung gusto mo lang naka-center ang text.
-                      // Pero kung gusto mo nasa dulo pa rin ang check, ibalik mo lang sa Row.
-                      // Kung gusto mo naka-center L-R ang text, pero nasa dulo ang check:
-
-                      // Nire-design ko ang layout para mas maging center-friendly ang text,
-                      // kaya ihihiwalay ko ang check mark.
-
-                      // Kung gusto mo pa rin may check mark:
                       if (isSelected)
                         AnimatedScale(
                           duration: const Duration(milliseconds: 250),
                           scale: isSelected ? 1.0 : 0.0,
                           child: Container(
-                            margin: const EdgeInsets.only(left: 8), // Space
+                            margin: const EdgeInsets.only(left: 8),
                             padding: const EdgeInsets.all(3),
                             decoration: BoxDecoration(
                               color: Colors.cyanAccent.shade400,
@@ -1325,7 +1301,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                             ),
                             child: Icon(
                               Icons.check_rounded,
-                              size: 14, // Mas malaking icon size
+                              size: 14,
                               color: Colors.indigo.shade900,
                             ),
                           ),

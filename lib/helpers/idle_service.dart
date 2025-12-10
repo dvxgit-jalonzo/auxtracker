@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:auxtrack/helpers/api_controller.dart';
 import 'package:system_idle/system_idle.dart';
 
 class IdleService {
@@ -28,7 +29,7 @@ class IdleService {
   bool _isInitialized = false;
 
   // Configuration
-  static const Duration idleThreshold = Duration(minutes: 5);
+  static const Duration idleThreshold = Duration(seconds: 5);
   static const Duration checkInterval = Duration(seconds: 1);
 
   /// Initialize the idle service
@@ -51,6 +52,7 @@ class IdleService {
   void _onIdleChanged(bool isIdle) {
     print('Idle state changed: $isIdle');
     _idleStateController.add(isIdle);
+    ApiController.instance.createEmployeeIdle(isIdle);
   }
 
   Future<void> _checkDuration(Timer timer) async {

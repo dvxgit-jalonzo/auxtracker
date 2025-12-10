@@ -65,8 +65,9 @@ class ApiController {
         );
       }
       final siteId = userInfo['site_id'].toString();
+      final employeeId = userInfo['id'].toString();
 
-      Map<String, dynamic> params = {"site_id": siteId};
+      Map<String, dynamic> params = {"site_id": siteId, "employee_id" : employeeId};
 
       final headers = await _headers();
 
@@ -75,6 +76,7 @@ class ApiController {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        print(data);
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('auxiliaries', jsonEncode(data));
         print('Auxiliaries fetched and saved to local storage successfully.');
@@ -230,17 +232,27 @@ class ApiController {
       final headers = await _headers();
       final idleStatus = isIdle ? "1" : "0";
       final userInfo = await loadUserInfo();
+
+      print(userInfo);
+
       if (userInfo == null || userInfo['id'] == null) {
         throw Exception(
           'create employee idle User info not found. Please login first.',
         );
       }
       final employeeId = userInfo['id'];
+      final siteId = userInfo['site_id'];
+      final timezone = userInfo['timezone'];
       final url = Uri.parse('$baseUrl/create-employee-idle');
       final response = await http.post(
         url,
         headers: headers,
-        body: jsonEncode({'employee_id': employeeId, 'status': idleStatus}),
+        body: jsonEncode({
+          'employee_id': employeeId,
+          'site_id': siteId,
+          'timezone': timezone,
+          'status' : idleStatus
+        }),
       );
 
       if (response.statusCode == 200) {

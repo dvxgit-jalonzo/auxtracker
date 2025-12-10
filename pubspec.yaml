@@ -48,7 +48,6 @@ dependencies:
   system_tray: ^2.0.3
   web_socket_channel: ^3.0.3
   screen_capturer: ^0.2.3
-  elegant_notification: ^2.5.1
 
 dev_dependencies:
   flutter_test:
@@ -85,6 +84,7 @@ flutter_launcher_icons:
 flutter:
   assets :
     - assets/images/icon.png
+    - assets/images/logo.png
     - assets/images/icon.ico
     - assets/ffmpeg/ffmpeg.exe
     - assets/config/configuration.json
