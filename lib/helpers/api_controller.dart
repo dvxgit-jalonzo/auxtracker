@@ -27,10 +27,10 @@ class ApiController {
 
   Future<void> getReverbAppKey() async {
     try {
-      final host = await Configuration.instance.get("host");
+      final host = await Configuration.instance.get("baseUrl");
       final headers = await _headers();
 
-      final url = Uri.http(host, '/api/get-reverb-key');
+      final url = Uri.parse("$host/get-reverb-key");
       final response = await http.get(url, headers: headers);
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -54,44 +54,56 @@ class ApiController {
 
   Future<void> getAuxiliaries() async {
     try {
-      final host = await Configuration.instance.get("host");
-      // Get site_id from saved user info
+      final baseUrl = await Configuration.instance.get("baseUrl");
       final userInfo = await loadUserInfo();
 
-      if (userInfo == null || userInfo['site_id'] == null) {
-        throw Exception(
-          'get auxiliaries User info not found. Please login first.',
-        );
+      if (userInfo == null || userInfo['id'] == null) {
+        throw Exception('getAuxiliaries: User info not found. Please login first.');
       }
-      final siteId = userInfo['site_id'].toString();
-      final employeeId = userInfo['id'].toString();
-
-      Map<String, dynamic> params = {
-        "site_id": siteId,
-        "employee_id": employeeId,
-      };
 
       final headers = await _headers();
+      final employeeId = userInfo['id'];
+      final siteId = userInfo['site_id'];
 
-      final url = Uri.http(host, '/api/get-auxiliaries', params);
+      final base = Uri.parse(baseUrl);
+
+      final protocol = base.scheme;  // http or https
+      final host = base.host;        // domain or IP
+      final port = base.hasPort ? base.port : null;
+      print(base);
+      print(protocol);
+      print(host);
+      print(port);
+
+      final params = {
+        "employee_id": employeeId.toString(),
+        "site_id": siteId.toString(),
+      };
+
+      // Build the GET URL
+      Uri url = protocol == "https"
+          ? Uri.https(host, '/api/get-auxiliaries', params)
+          : Uri.http(host, '/api/get-auxiliaries', params);
+
+      if (port != null) {
+        url = url.replace(port: port);
+      }
+
+      // Send GET request
       final response = await http.get(url, headers: headers);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print(data);
+
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('auxiliaries', jsonEncode(data));
-        print('Auxiliaries fetched and saved to local storage successfully.');
+
+        print("Auxiliaries saved!");
       } else {
-        print(
-          'Failed to fetch auxiliaries: ${response.statusCode} - ${response.body}',
-        );
-        throw Exception('Failed to fetch auxiliaries');
+        print("Error getting auxiliaries: ${response.statusCode}");
       }
     } catch (e) {
-      final message = e.toString();
-      print(message);
-      rethrow;
+      print("Error getting auxiliaries: $e");
     }
   }
 
@@ -165,6 +177,7 @@ class ApiController {
       final headers = await _headers();
       final employeeId = userInfo['id'];
       final url = Uri.parse('$baseUrl/create-employee-log');
+
       final response = await http.post(
         url,
         headers: headers,
@@ -297,6 +310,7 @@ class ApiController {
       final headers = await _headers();
       final url = Uri.parse('$baseUrl/me');
       final response = await http.get(url, headers: headers);
+
       if (response.statusCode == 200) {
         print('User info fetched successfully.');
         final userInfo = jsonDecode(response.body);

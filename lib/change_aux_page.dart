@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:auxtrack/helpers/custom_notification.dart';
@@ -12,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'helpers/api_controller.dart';
+import 'helpers/http_overrides.dart';
 import 'helpers/idle_service.dart';
 import 'helpers/recording_service.dart';
 import 'main.dart';
@@ -45,7 +47,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     WindowModes.restricted();
     windowManager.addListener(this);
     _loadAuxiliariesFromLocal();
-    IdleService.instance.initialize();
+    // IdleService.instance.initialize();
     // _idleSubscription = IdleService.instance.idleStateStream.listen((isIdle) {
     //   ApiController.instance.createEmployeeIdle(isIdle);
     // });

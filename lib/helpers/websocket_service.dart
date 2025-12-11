@@ -56,7 +56,7 @@ class WebSocketService {
 
       _channel = IOWebSocketChannel.connect(
         Uri.parse(
-          'ws://$wsHost/app/${reverb['key']}?protocol=7&client=js&version=4.4.0&flash=false',
+          '$wsHost/app/${reverb['key']}?protocol=7&client=js&version=4.4.0&flash=false',
         ),
       );
 
