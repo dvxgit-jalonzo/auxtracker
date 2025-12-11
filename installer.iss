@@ -5,8 +5,8 @@ AppName=AuxTracker
 AppVersion=1.0.0
 AppPublisher=Diavox
 DefaultDirName={autopf}\AuxTracker
-DefaultGroupName=AUXTracker
-OutputBaseFilename=AuxTracker-Installer
+DefaultGroupName=AuxTracker
+OutputBaseFilename=auxtracker
 Compression=lzma
 SolidCompression=yes
 
@@ -31,4 +31,4 @@ Name: "desktopicon"; Description: "Create a desktop icon"; GroupDescription: "Ad
 
 [Run]
 ; Run app after install (optional)
-Filename: "{app}\auxtrack.exe"; Description: "Launch AUXTracker"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\auxtrack.exe"; Description: "Launch AuxTracker"; Flags: nowait postinstall skipifsilent

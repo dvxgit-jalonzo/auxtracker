@@ -102,7 +102,9 @@ class WebSocketService {
       final String? event = jsonMap['event'];
 
       if (event == "pusher:ping") {
-        _channel!.sink.add(jsonEncode({'event': 'pusher:pong'}));
+        final pong = jsonEncode({'event': 'pusher:pong'});
+        _channel!.sink.add(pong);
+        print("acknowledge sent: $pong");
         return;
       }
       final eventData = jsonDecode(jsonMap['data']);

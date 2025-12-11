@@ -7,7 +7,6 @@ import 'package:window_manager/window_manager.dart';
 
 import 'change_aux_page.dart';
 import 'helpers/api_controller.dart';
-import 'helpers/custom_notification.dart';
 import 'helpers/http_overrides.dart';
 
 // Global system tray instance
@@ -215,7 +214,12 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24, top: 5),
+              padding: const EdgeInsets.only(
+                left: 24,
+                right: 24,
+                bottom: 24,
+                top: 5,
+              ),
               child: Form(
                 key: _formKey,
                 child: Column(
