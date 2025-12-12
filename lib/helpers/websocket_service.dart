@@ -56,7 +56,7 @@ class WebSocketService {
 
       _channel = IOWebSocketChannel.connect(
         Uri.parse(
-          'ws://$wsHost/app/${reverb['key']}?protocol=7&client=js&version=4.4.0&flash=false',
+          '$wsHost/app/${reverb['key']}?protocol=7&client=js&version=4.4.0&flash=false',
         ),
       );
 
@@ -102,7 +102,9 @@ class WebSocketService {
       final String? event = jsonMap['event'];
 
       if (event == "pusher:ping") {
-        _channel!.sink.add(jsonEncode({'event': 'pusher:pong'}));
+        final pong = jsonEncode({'event': 'pusher:pong'});
+        _channel!.sink.add(pong);
+        print("acknowledge sent: $pong");
         return;
       }
       final eventData = jsonDecode(jsonMap['data']);
