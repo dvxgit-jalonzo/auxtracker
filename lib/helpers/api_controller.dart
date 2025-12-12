@@ -165,7 +165,7 @@ class ApiController {
   }
 
   /// Create employee log
-  Future<bool> createEmployeeLog(String sub) async {
+  Future<dynamic> createEmployeeLog(String sub) async {
     try {
       final baseUrl = await Configuration.instance.get("baseUrl");
       final userInfo = await loadUserInfo();
@@ -184,18 +184,10 @@ class ApiController {
         body: jsonEncode({"employee_id": employeeId, "sub": sub}),
       );
 
-      if (response.statusCode == 200) {
-        print('Employee log created successfully.');
-        return true;
-      } else {
-        print(
-          'Failed to create employee log. Status: ${response.statusCode}, Body: ${response.body}',
-        );
-        return false;
-      }
+      return jsonDecode(response.body);
+
     } catch (e) {
       print('Error creating employee log: $e');
-      return false;
     }
   }
 
@@ -321,6 +313,20 @@ class ApiController {
     } catch (e) {
       print('Error fetching user info: $e');
     }
+  }
+
+  Future<String> confirmCredential(String username, String password) async {
+    final baseUrl = await Configuration.instance.get("baseUrl");
+    final headers = await  _headers();
+
+    final uri = Uri.parse("$baseUrl/confirm-credentials");
+    final params = {
+      "username" : username,
+      "password" : password,
+    };
+
+    final response = await http.post(uri, headers: headers, body: jsonEncode(params));
+    return response.body;
   }
 
   /// Logout
