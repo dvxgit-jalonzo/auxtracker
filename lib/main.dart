@@ -9,77 +9,12 @@ import 'change_aux_page.dart';
 import 'helpers/api_controller.dart';
 import 'helpers/http_overrides.dart';
 
-// Global system tray instance
-// final SystemTray systemTray = SystemTray();
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   HttpOverrides.global = MyHttpOverrides();
-  // Initialize system tray
-  // await initSystemTray();
   await WindowModes.normal();
   runApp(const MyApp());
 }
-
-// Future<void> initSystemTray() async {
-//   try {
-//     // Get the executable directory for the icon
-//     String path = Platform.resolvedExecutable;
-//     List<String> pathSegments = path.split(Platform.pathSeparator)
-//       ..removeLast();
-//     String iconPath =
-//         '${pathSegments.join(Platform.pathSeparator)}${Platform.pathSeparator}data${Platform.pathSeparator}flutter_assets${Platform.pathSeparator}assets${Platform.pathSeparator}images${Platform.pathSeparator}icon.ico';
-//
-//     // Try to initialize with icon, if fails, try without icon
-//     try {
-//       await systemTray.initSystemTray(
-//         title: "AuxTrack",
-//         iconPath: iconPath,
-//         toolTip: "AuxTrack - Click to open",
-//       );
-//     } catch (e) {
-//       print('Failed to load icon, initializing without icon: $e');
-//       // Initialize without icon if icon loading fails
-//     }
-//
-//     // Create context menu
-//     final Menu menu = Menu();
-//     await menu.buildFrom([
-//       MenuItemLabel(
-//         label: 'Show Window',
-//         onClicked: (menuItem) async {
-//           await windowManager.show();
-//           await windowManager.focus();
-//         },
-//       ),
-//       MenuSeparator(),
-//       MenuItemLabel(
-//         label: 'Exit',
-//         onClicked: (menuItem) async {
-//           await windowManager.destroy();
-//           exit(0);
-//         },
-//       ),
-//     ]);
-//
-//     await systemTray.setContextMenu(menu);
-//
-//     // Handle left click on tray icon
-//     systemTray.registerSystemTrayEventHandler((eventName) {
-//       if (eventName == kSystemTrayEventClick) {
-//         // Left click - show window
-//         windowManager.show();
-//         windowManager.focus();
-//       } else if (eventName == kSystemTrayEventRightClick) {
-//         // Right click - show context menu (handled automatically)
-//         systemTray.popUpContextMenu();
-//       }
-//     });
-//   } catch (e) {
-//     print('System tray initialization error: $e');
-//     // Continue without system tray if it fails
-//   }
-// }
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -117,10 +52,10 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> with WindowListener {
   final _formKey = GlobalKey<FormState>();
-  // final _usernameController = TextEditingController();
-  // final _passwordController = TextEditingController();
-  final _usernameController = TextEditingController(text: "admin");
-  final _passwordController = TextEditingController(text: "admin123");
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+  // final _usernameController = TextEditingController(text: "admin");
+  // final _passwordController = TextEditingController(text: "admin123");
   bool _isPasswordVisible = false;
   bool _isLoading = false;
 
@@ -137,14 +72,6 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
     _passwordController.dispose();
     super.dispose();
   }
-
-  // THIS IS THE KEY PART - Handle window close event
-  // @override
-  // void onWindowClose() async {
-  //   // Prevent default close behavior
-  //   // Instead, hide to system tray
-  //   await windowManager.hide();
-  // }
 
   void _handleLogin() async {
     if (_formKey.currentState!.validate()) {

@@ -39,15 +39,10 @@ dependencies:
   window_manager: ^0.5.1
   http: ^1.6.0
   shared_preferences: ^2.5.3
-  flutter_screen_capture: ^2.0.1
   system_idle: ^2.0.0
-  flutter_styled_toast: ^2.3.0
-  msix: ^3.16.12
   intl: ^0.20.2
   path_provider: ^2.1.5
-  system_tray: ^2.0.3
   web_socket_channel: ^3.0.3
-  screen_capturer: ^0.2.3
 
 dev_dependencies:
   flutter_test:
