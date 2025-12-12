@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:auxtrack/helpers/window_modes.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -5,14 +7,14 @@ import 'package:window_manager/window_manager.dart';
 
 import 'change_aux_page.dart';
 import 'helpers/api_controller.dart';
-import 'helpers/custom_notification.dart';
+import 'helpers/http_overrides.dart';
 
 // Global system tray instance
 // final SystemTray systemTray = SystemTray();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+  HttpOverrides.global = MyHttpOverrides();
   // Initialize system tray
   // await initSystemTray();
   await WindowModes.normal();
@@ -153,7 +155,6 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
         final password = _passwordController.text;
 
         final success = await ApiController.instance.login(username, password);
-
         setState(() => _isLoading = false);
 
         if (success) {
@@ -161,7 +162,6 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
             final prefs = await SharedPreferences.getInstance();
 
             final accessToken = prefs.getString("accessToken");
-
             if (accessToken != null && accessToken.isNotEmpty) {
               Navigator.pushReplacement(
                 context,
@@ -214,7 +214,12 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24, top: 5),
+              padding: const EdgeInsets.only(
+                left: 24,
+                right: 24,
+                bottom: 24,
+                top: 5,
+              ),
               child: Form(
                 key: _formKey,
                 child: Column(

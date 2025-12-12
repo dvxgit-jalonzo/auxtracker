@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:auxtrack/helpers/custom_notification.dart';
@@ -12,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'helpers/api_controller.dart';
+import 'helpers/http_overrides.dart';
 import 'helpers/idle_service.dart';
 import 'helpers/recording_service.dart';
 import 'main.dart';
@@ -45,7 +47,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     WindowModes.restricted();
     windowManager.addListener(this);
     _loadAuxiliariesFromLocal();
-    IdleService.instance.initialize();
+    // IdleService.instance.initialize();
     // _idleSubscription = IdleService.instance.idleStateStream.listen((isIdle) {
     //   ApiController.instance.createEmployeeIdle(isIdle);
     // });
@@ -94,9 +96,9 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     });
   }
 
-  void _startTimer() {
+  void _startTimer([Duration elapsedTime = Duration.zero]) {
     _timer?.cancel();
-    _elapsedTime = Duration.zero;
+    _elapsedTime = elapsedTime;
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
         _elapsedTime = Duration(seconds: _elapsedTime.inSeconds + 1);
@@ -132,13 +134,26 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   }
 
   void _createEmployeeLogPersonalBreak() async {
-    await ApiController.instance.createEmployeeLog("Personal Break");
+    final response = await ApiController.instance.createEmployeeLog("Personal Break");
+    if(response['code'] == 200){
+      _startTimer();
+      CustomNotification.info(context, response['message']);
+    }else if(response['code'] == 409){
+      _startTimer(Duration(seconds: response['elapsedTime']));
+      CustomNotification.warning(context, response['message']);
+    }
   }
 
   void _createEmployeeLogTimeIn() async {
-    await ApiController.instance.createEmployeeLog("Time In");
-    _startTimer();
-    CustomNotification.info(context, "Aux set to Time In.");
+    final response = await ApiController.instance.createEmployeeLog("Time In");
+    if(response['code'] == 200){
+      _startTimer();
+      CustomNotification.info(context, response['message']);
+    }else if(response['code'] == 409){
+      _startTimer(Duration(seconds: response['elapsedTime']));
+      CustomNotification.warning(context, response['message']);
+    }
+
   }
 
   IconData _getCategoryIcon(String category) {
@@ -585,7 +600,221 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       }
       return; // Exit early for Personal Break
     }
+    if (_selectedAux!['main'] == "OT") {
+      final username = TextEditingController();
+      final password = TextEditingController();
 
+      final confirmResult = await showDialog<String>(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.all(24),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(18),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: Colors.white.withOpacity(0.2)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.25),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  width: 300,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Title
+                      const Text(
+                        'TL or Manager is required for this request.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.06),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.18),
+                          ),
+                        ),
+                        child: TextField(
+                          controller: username,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: const InputDecoration(
+
+                            hintText: 'Enter username',
+                            hintStyle: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 13,
+                            ),
+                            border: InputBorder.none,
+                          ),
+                          maxLines: 1,
+                        ),
+                      ),
+                      const SizedBox(height: 7),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.06),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.18),
+                          ),
+                        ),
+                        child: TextField(
+                          obscureText: true,
+                          controller: password,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: const InputDecoration(
+                            hintText: 'Enter password',
+                            hintStyle: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 13,
+                            ),
+                            border: InputBorder.none,
+                          ),
+                          maxLines: 1,
+                        ),
+                      ),
+                      const SizedBox(height: 22),
+
+                      Row(
+                        children: [
+                          // Cancel
+                          Expanded(
+                            child: TextButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                              },
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  side: BorderSide(
+                                    color: Colors.white.withOpacity(0.4),
+                                  ),
+                                ),
+                              ),
+                              child: const Text(
+                                'Cancel',
+                                style: TextStyle(fontSize: 13),
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(width: 11),
+
+
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () async {
+                                final confirm = await ApiController.instance.confirmCredential(username.text, password.text);
+                                Navigator.pop(context, confirm);
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue.shade800,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                elevation: 6,
+                              ),
+                              child: const Text(
+                                'Approve',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      );
+
+      if (confirmResult == "true") {
+        try {
+          if (mounted) {
+            final userInfo = await ApiController.instance.loadUserInfo();
+            if (userInfo == null || userInfo['id'] == null) {
+              throw Exception(
+                'change aux User info not found. Please login first.',
+              );
+            }
+            final response = await ApiController.instance.createEmployeeLog(_selectedAux!['sub']);
+            setState(() {
+              _stateAux = _selectedAux!['sub'];
+            });
+            if(response['code'] == 200){
+              _startTimer();
+              CustomNotification.info(context, response['message']);
+            }else if(response['code'] == 409){
+              _startTimer(Duration(seconds: response['elapsedTime']));
+              CustomNotification.warning(context, response['message']);
+            }
+          }else{
+            if (mounted) {
+              CustomNotification.error(
+                context,
+                "Failed to request OT",
+              );
+            }
+          }
+        } catch (e) {
+          if (mounted) {
+            CustomNotification.error(
+              context,
+              "Failed to request OT",
+            );
+          }
+        }
+      } else {
+        CustomNotification.error(
+          context,
+          "Credentials incorrect.",
+        );
+        setState(() {
+          _selectedAux = null;
+        });
+      }
+      return; // Exit early for Personal Break
+    }
     // For other selections, show the regular confirmation dialog
     final result = await showDialog<bool>(
       context: context,
@@ -628,7 +857,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                         shape: BoxShape.circle,
                       ),
 
-                      // asdf
                       child: Icon(
                         _getCategoryIcon(_selectedAux!['main']),
                         color: Colors.white,
@@ -738,6 +966,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       },
     );
 
+
     if (result == true) {
       if (mounted) {
         if (_selectedAux!['sub'] == "OFF") {
@@ -749,15 +978,19 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
               'change aux User info not found. Please login first.',
             );
           }
-          await ApiController.instance.createEmployeeLog(_selectedAux!['sub']);
-          _startTimer();
-        }
+          final response = await ApiController.instance.createEmployeeLog(_selectedAux!['sub']);
+          setState(() {
+            _stateAux = _selectedAux!['sub'];
+          });
+          if(response['code'] == 200){
+            _startTimer();
+            CustomNotification.info(context, response['message']);
+          }else if(response['code'] == 409){
+            _startTimer(Duration(seconds: response['elapsedTime']));
+            CustomNotification.warning(context, response['message']);
+          }
 
-        setState(() {
-          _stateAux = _selectedAux!['sub'];
-        });
-        final message = "Aux set to ${_selectedAux!['sub']}";
-        CustomNotification.info(context, message);
+        }
       }
     } else {
       setState(() {
