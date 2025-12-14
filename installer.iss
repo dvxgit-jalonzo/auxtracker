@@ -3,12 +3,17 @@
 [Setup]
 AppName=AuxTracker
 AppVersion=1.0.0
-AppPublisher=Diavox
+AppPublisher=Diavox Network Inc.
+AppCopyright=© 2025 Diavox Network Inc. Developed by Jhun Norman Alonzo
+AppPublisherURL=https://www.diavox.net/
+AppSupportURL=https://www.diavox.net/help/technical-support/
+AppUpdatesURL=https://www.diavox.net/
 DefaultDirName={autopf}\AuxTracker
 DefaultGroupName=AuxTracker
-OutputBaseFilename=auxtracker
+OutputBaseFilename=auxtracker-setup
 Compression=lzma
 SolidCompression=yes
+InfoBeforeFile=infobeforefile.txt
 
 ; Icon shown in the installer and Start Menu
 SetupIconFile=assets\images\icon.ico

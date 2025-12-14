@@ -4,12 +4,12 @@ class CustomNotification {
   static OverlayEntry? _currentOverlay;
 
   static void show(
-      BuildContext context, {
-        required String message,
-        required NotificationType type,
-        Duration duration = const Duration(seconds: 3),
-        String? title,
-      }) {
+    BuildContext context, {
+    required String message,
+    required NotificationType type,
+    Duration duration = const Duration(seconds: 3),
+    String? title,
+  }) {
     // Remove existing notification if any
     try {
       _currentOverlay?.remove();
@@ -45,7 +45,12 @@ class CustomNotification {
   }
 
   static void success(BuildContext context, String message, {String? title}) {
-    show(context, message: message, type: NotificationType.success, title: title);
+    show(
+      context,
+      message: message,
+      type: NotificationType.success,
+      title: title,
+    );
   }
 
   static void error(BuildContext context, String message, {String? title}) {
@@ -57,10 +62,14 @@ class CustomNotification {
   }
 
   static void warning(BuildContext context, String message, {String? title}) {
-    show(context, message: message, type: NotificationType.warning, title: title);
+    show(
+      context,
+      message: message,
+      type: NotificationType.warning,
+      title: title,
+    );
   }
 }
-
 
 enum NotificationType { success, error, info, warning }
 
@@ -116,18 +125,12 @@ class _NotificationWidgetState extends State<_NotificationWidget>
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, -1),
       end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.elasticOut,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.elasticOut));
 
     _fadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeIn,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeIn));
 
     _controller.forward();
 
@@ -189,7 +192,7 @@ class _NotificationWidgetState extends State<_NotificationWidget>
     final isMobile = size.width < 600;
 
     return Positioned(
-      top: isMobile ? 16 : 24,
+      bottom: isMobile ? 16 : 24,
       right: isMobile ? (size.width - widget.width) / 2 : 24,
       child: SlideTransition(
         position: _slideAnimation,
@@ -203,7 +206,10 @@ class _NotificationWidgetState extends State<_NotificationWidget>
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: config.color.withOpacity(0.3), width: 1.5),
+                border: Border.all(
+                  color: config.color.withOpacity(0.3),
+                  width: 1.5,
+                ),
                 boxShadow: [
                   BoxShadow(
                     color: config.color.withOpacity(0.15),
