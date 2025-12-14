@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'dart:ui';
 
 import 'package:auxtrack/helpers/custom_notification.dart';
@@ -13,7 +12,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'helpers/api_controller.dart';
-import 'helpers/http_overrides.dart';
 import 'helpers/idle_service.dart';
 import 'helpers/recording_service.dart';
 import 'main.dart';
@@ -33,7 +31,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   TabController? _tabController;
   final recorder = VideoRecorderController();
   final capturer = PeriodicCaptureController();
-  String _stateAux = "Time In";
+  String? _stateAux;
 
   Timer? _timer;
   Duration _elapsedTime = Duration.zero;
@@ -49,7 +47,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     _loadAuxiliariesFromLocal();
     // IdleService.instance.initialize();
     // _idleSubscription = IdleService.instance.idleStateStream.listen((isIdle) {
-    //   ApiController.instance.createEmployeeIdle(isIdle);
+
     // });
 
     WebSocketService().connect();
@@ -134,26 +132,41 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   }
 
   void _createEmployeeLogPersonalBreak() async {
-    final response = await ApiController.instance.createEmployeeLog("Personal Break");
-    if(response['code'] == 200){
+    final sub = "Personal Break";
+    final response = await ApiController.instance.createEmployeeLog(sub);
+    if (response['code'] == 200) {
+      setState(() {
+        _stateAux = sub;
+      });
       _startTimer();
       CustomNotification.info(context, response['message']);
-    }else if(response['code'] == 409){
+    } else if (response['code'] == 409) {
+      setState(() {
+        _stateAux = sub;
+      });
       _startTimer(Duration(seconds: response['elapsedTime']));
       CustomNotification.warning(context, response['message']);
     }
   }
 
   void _createEmployeeLogTimeIn() async {
-    final response = await ApiController.instance.createEmployeeLog("Time In");
-    if(response['code'] == 200){
+    final sub = "Time In";
+    final response = await ApiController.instance.createEmployeeLog(sub);
+    if (response['code'] == 200) {
+      // Auxiliary? result = findAuxiliaryBySub(sub);
+      // print(result?.sub);
+      setState(() {
+        _stateAux = sub;
+      });
       _startTimer();
       CustomNotification.info(context, response['message']);
-    }else if(response['code'] == 409){
+    } else if (response['code'] == 409) {
+      setState(() {
+        _stateAux = sub;
+      });
       _startTimer(Duration(seconds: response['elapsedTime']));
       CustomNotification.warning(context, response['message']);
     }
-
   }
 
   IconData _getCategoryIcon(String category) {
@@ -219,8 +232,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
         throw Exception('change aux User info not found. Please login first.');
       }
       await ApiController.instance.createEmployeeLog("OFF");
-
-      // _stopScreenRecording();
       capturer.stopCapturing();
       await ApiController.instance.logout();
       await WindowModes.normal();
@@ -239,6 +250,20 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
           ),
         );
       }
+    }
+  }
+
+  Auxiliary? findAuxiliaryBySub(String sub) {
+    try {
+      // Flatten all categories and search
+      return _auxiliariesByCategory.values
+          .expand((list) => list) // Flatten the lists
+          .firstWhere(
+            (aux) => aux.sub == sub,
+            orElse: () => throw Exception('Not found'),
+          );
+    } catch (e) {
+      return null;
     }
   }
 
@@ -268,12 +293,14 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                 duration: const Duration(milliseconds: 250),
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.08),
+                  color: Colors.white.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: Colors.white.withOpacity(0.2)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.2),
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.25),
+                      color: Colors.black.withValues(alpha: 0.25),
                       blurRadius: 20,
                       offset: const Offset(0, 8),
                     ),
@@ -287,7 +314,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
+                        color: Colors.white.withValues(alpha: 0.15),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -320,10 +347,10 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                         horizontal: 14,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.06),
+                        color: Colors.white.withValues(alpha: 0.06),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.18),
+                          color: Colors.white.withValues(alpha: 0.18),
                         ),
                       ),
                       child: Text(
@@ -353,7 +380,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                                 side: BorderSide(
-                                  color: Colors.white.withOpacity(0.4),
+                                  color: Colors.white.withValues(alpha: 0.4),
                                 ),
                               ),
                             ),
@@ -433,12 +460,14 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                   duration: const Duration(milliseconds: 250),
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.08),
+                    color: Colors.white.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: Colors.white.withOpacity(0.2)),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.2),
+                    ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.25),
+                        color: Colors.black.withValues(alpha: 0.25),
                         blurRadius: 20,
                         offset: const Offset(0, 8),
                       ),
@@ -452,7 +481,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                       Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
+                          color: Colors.white.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
@@ -481,10 +510,10 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.06),
+                          color: Colors.white.withValues(alpha: 0.06),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.18),
+                            color: Colors.white.withValues(alpha: 0.18),
                           ),
                         ),
                         child: TextField(
@@ -520,7 +549,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),
                                   side: BorderSide(
-                                    color: Colors.white.withOpacity(0.4),
+                                    color: Colors.white.withValues(alpha: 0.4),
                                   ),
                                 ),
                               ),
@@ -600,7 +629,8 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       }
       return; // Exit early for Personal Break
     }
-    if (_selectedAux!['main'] == "OT") {
+    if (_selectedAux!['main'] == "OT" ||
+        _selectedAux!['sub'] == "Troubleshooting") {
       final username = TextEditingController();
       final password = TextEditingController();
 
@@ -622,12 +652,14 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                   duration: const Duration(milliseconds: 250),
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.08),
+                    color: Colors.white.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: Colors.white.withOpacity(0.2)),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.2),
+                    ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.25),
+                        color: Colors.black.withValues(alpha: 0.25),
                         blurRadius: 20,
                         offset: const Offset(0, 8),
                       ),
@@ -653,17 +685,16 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.06),
+                          color: Colors.white.withValues(alpha: 0.06),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.18),
+                            color: Colors.white.withValues(alpha: 0.18),
                           ),
                         ),
                         child: TextField(
                           controller: username,
                           style: const TextStyle(color: Colors.white),
                           decoration: const InputDecoration(
-
                             hintText: 'Enter username',
                             hintStyle: TextStyle(
                               color: Colors.white54,
@@ -678,10 +709,10 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.06),
+                          color: Colors.white.withValues(alpha: 0.06),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.18),
+                            color: Colors.white.withValues(alpha: 0.18),
                           ),
                         ),
                         child: TextField(
@@ -717,7 +748,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),
                                   side: BorderSide(
-                                    color: Colors.white.withOpacity(0.4),
+                                    color: Colors.white.withValues(alpha: 0.4),
                                   ),
                                 ),
                               ),
@@ -730,11 +761,14 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
 
                           const SizedBox(width: 11),
 
-
                           Expanded(
                             child: ElevatedButton(
                               onPressed: () async {
-                                final confirm = await ApiController.instance.confirmCredential(username.text, password.text);
+                                final confirm = await ApiController.instance
+                                    .confirmCredential(
+                                      username.text,
+                                      password.text,
+                                    );
                                 Navigator.pop(context, confirm);
                               },
                               style: ElevatedButton.styleFrom(
@@ -777,38 +811,39 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                 'change aux User info not found. Please login first.',
               );
             }
-            final response = await ApiController.instance.createEmployeeLog(_selectedAux!['sub']);
-            setState(() {
-              _stateAux = _selectedAux!['sub'];
-            });
-            if(response['code'] == 200){
+            final response = await ApiController.instance.createEmployeeLog(
+              _selectedAux!['sub'],
+            );
+
+            if (response['code'] == 200) {
+              setState(() {
+                _stateAux = _selectedAux!['sub'];
+              });
               _startTimer();
               CustomNotification.info(context, response['message']);
-            }else if(response['code'] == 409){
+            } else if (response['code'] == 409) {
+              setState(() {
+                _stateAux = _selectedAux!['sub'];
+              });
               _startTimer(Duration(seconds: response['elapsedTime']));
               CustomNotification.warning(context, response['message']);
             }
-          }else{
+          } else {
             if (mounted) {
-              CustomNotification.error(
-                context,
-                "Failed to request OT",
-              );
+              CustomNotification.error(context, "Failed to request OT");
             }
           }
         } catch (e) {
           if (mounted) {
-            CustomNotification.error(
-              context,
-              "Failed to request OT",
-            );
+            CustomNotification.error(context, "Failed to request OT");
           }
         }
+      } else if (confirmResult == "false") {
+        CustomNotification.error(context, "Credentials incorrect.");
+        setState(() {
+          _selectedAux = null;
+        });
       } else {
-        CustomNotification.error(
-          context,
-          "Credentials incorrect.",
-        );
         setState(() {
           _selectedAux = null;
         });
@@ -834,12 +869,14 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                 duration: const Duration(milliseconds: 250),
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.08),
+                  color: Colors.white.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: Colors.white.withOpacity(0.2)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.2),
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.25),
+                      color: Colors.black.withValues(alpha: 0.25),
                       blurRadius: 20,
                       offset: const Offset(0, 8),
                     ),
@@ -853,7 +890,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
+                        color: Colors.white.withValues(alpha: 0.15),
                         shape: BoxShape.circle,
                       ),
 
@@ -887,10 +924,10 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                         horizontal: 14,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.06),
+                        color: Colors.white.withValues(alpha: 0.06),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.18),
+                          color: Colors.white.withValues(alpha: 0.18),
                         ),
                       ),
                       child: Text(
@@ -920,7 +957,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                                 side: BorderSide(
-                                  color: Colors.white.withOpacity(0.4),
+                                  color: Colors.white.withValues(alpha: 0.4),
                                 ),
                               ),
                             ),
@@ -966,7 +1003,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       },
     );
 
-
     if (result == true) {
       if (mounted) {
         if (_selectedAux!['sub'] == "OFF") {
@@ -978,18 +1014,19 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
               'change aux User info not found. Please login first.',
             );
           }
-          final response = await ApiController.instance.createEmployeeLog(_selectedAux!['sub']);
+          final response = await ApiController.instance.createEmployeeLog(
+            _selectedAux!['sub'],
+          );
           setState(() {
             _stateAux = _selectedAux!['sub'];
           });
-          if(response['code'] == 200){
+          if (response['code'] == 200) {
             _startTimer();
             CustomNotification.info(context, response['message']);
-          }else if(response['code'] == 409){
+          } else if (response['code'] == 409) {
             _startTimer(Duration(seconds: response['elapsedTime']));
             CustomNotification.warning(context, response['message']);
           }
-
         }
       }
     } else {
@@ -1016,7 +1053,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
               // Use a Stack to overlay the status indicator at the top
               children: [
                 Padding(
-                  padding: const EdgeInsets.all(20.0),
+                  padding: const EdgeInsets.all(15.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1024,7 +1061,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Flexible(
-                            // ✅ Add Flexible here
                             child: Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 12, // 16 → 12
@@ -1033,8 +1069,8 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   colors: [
-                                    Colors.lightBlue.withOpacity(0.2),
-                                    Colors.white.withOpacity(0.08),
+                                    Colors.lightBlue.withValues(alpha: 0.2),
+                                    Colors.white.withValues(alpha: 0.08),
                                   ],
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
@@ -1043,12 +1079,12 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                   20,
                                 ), // 25 → 20
                                 border: Border.all(
-                                  color: Colors.white.withOpacity(0.4),
+                                  color: Colors.white.withValues(alpha: 0.2),
                                   width: 1.5,
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.4),
+                                    color: Colors.black.withValues(alpha: 0.4),
                                     blurRadius: 12, // 15 → 12
                                     offset: const Offset(0, 4), // 5 → 4
                                   ),
@@ -1061,34 +1097,33 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                   Flexible(
                                     child: Text(
                                       _stateAux ?? "NOT LOGGED",
-                                      style: const TextStyle(
-                                        color: Colors.white,
+                                      style: TextStyle(
+                                        color: Colors.blue.shade500,
                                         fontSize: 12, // 14 → 12
-                                        fontWeight: FontWeight.w900,
+                                        fontWeight: FontWeight.w700,
                                         letterSpacing: 0.8, // 1.0 → 0.8
                                       ),
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
-                                  const SizedBox(width: 10), // 15 → 10
-                                  Container(
-                                    height: 16, // 20 → 16
-                                    width: 1,
-                                    color: Colors.white.withOpacity(0.3),
-                                  ),
-                                  const SizedBox(width: 10), // 15 → 10
+                                  const SizedBox(width: 5), // 15 → 10
+
                                   Container(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 8, // 10 → 8
                                       vertical: 4, // 5 → 4
                                     ),
                                     decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.1),
+                                      color: Colors.white.withValues(
+                                        alpha: 0.1,
+                                      ),
                                       borderRadius: BorderRadius.circular(
                                         12,
                                       ), // 15 → 12
                                       border: Border.all(
-                                        color: Colors.white.withOpacity(0.2),
+                                        color: Colors.white.withValues(
+                                          alpha: 0.2,
+                                        ),
                                         width: 1,
                                       ),
                                     ),
@@ -1097,15 +1132,15 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                       children: [
                                         Icon(
                                           Icons.timer_sharp,
-                                          size: 12, // 14 → 12
+                                          size: 15, // 14 → 12
                                           color: Colors.lightGreenAccent,
                                         ),
                                         const SizedBox(width: 5), // 6 → 5
                                         Text(
                                           _formattedTime,
                                           style: TextStyle(
-                                            color: Colors.lightGreenAccent,
-                                            fontSize: 11, // 12 → 11
+                                            color: Colors.white,
+                                            fontSize: 10, // 12 → 11
                                             fontWeight: FontWeight.bold,
                                             letterSpacing: 0.4, // 0.5 → 0.4
                                           ),
@@ -1117,6 +1152,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                               ),
                             ),
                           ),
+                          SizedBox(width: 7),
                           InkWell(
                             borderRadius: BorderRadius.circular(40),
                             onTap: () {
@@ -1165,14 +1201,14 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                         Container(
                           height: 42,
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.2),
+                            color: Colors.black.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                              color: Colors.white.withOpacity(0.15),
+                              color: Colors.white.withValues(alpha: 0.15),
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.25),
+                                color: Colors.black.withValues(alpha: 0.25),
                                 blurRadius: 6,
                                 offset: const Offset(0, 2),
                               ),
@@ -1224,8 +1260,8 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                     borderRadius: BorderRadius.circular(8),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.greenAccent.withOpacity(
-                                          0.3,
+                                        color: Colors.greenAccent.withValues(
+                                          alpha: 0.3,
                                         ),
                                         blurRadius: 6,
                                         offset: const Offset(0, 2),
@@ -1233,8 +1269,9 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                     ],
                                   ),
                                   labelColor: Colors.white,
-                                  unselectedLabelColor: Colors.white
-                                      .withOpacity(0.5),
+                                  unselectedLabelColor: Colors.white.withValues(
+                                    alpha: 0.5,
+                                  ),
                                   labelStyle: const TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
@@ -1282,17 +1319,18 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                 child: Text(
                                   'No auxiliaries available',
                                   style: TextStyle(
-                                    color: Colors.white.withOpacity(0.7),
+                                    color: Colors.white.withValues(alpha: 0.7),
                                     fontSize: 12,
                                   ),
                                 ),
                               )
                             : Container(
+                                padding: EdgeInsets.all(4),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.1),
+                                  color: Colors.purple.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
-                                    color: Colors.white.withOpacity(0.3),
+                                    color: Colors.white.withValues(alpha: 0.2),
                                   ),
                                 ),
                                 child: TabBarView(
@@ -1351,7 +1389,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                 borderRadius: BorderRadius.circular(10),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.4),
+                                    color: Colors.black.withValues(alpha: 0.4),
                                     blurRadius: 10,
                                     offset: const Offset(0, 4),
                                   ),
@@ -1387,7 +1425,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                   SizedBox(width: isNarrow ? 6 : 10),
                                   Icon(
                                     Icons.close,
-                                    color: Colors.white.withOpacity(0.7),
+                                    color: Colors.white.withValues(alpha: 0.7),
                                     size: isNarrow ? 14 : 16,
                                   ),
                                 ],
@@ -1408,7 +1446,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
 
   Widget _buildAuxiliaryList(List<Auxiliary> auxiliaries) {
     return Padding(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(5),
       child: GridView.builder(
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
@@ -1440,8 +1478,8 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                       colors: isSelected
                           ? [Colors.lightBlue.shade600, Colors.indigo.shade800]
                           : [
-                              Colors.white.withOpacity(0.15),
-                              Colors.white.withOpacity(0.08),
+                              Colors.white.withValues(alpha: 0.15),
+                              Colors.white.withValues(alpha: 0.08),
                             ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -1449,21 +1487,21 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: isSelected
-                          ? Colors.cyanAccent.shade400.withOpacity(0.8)
-                          : Colors.white.withOpacity(0.15),
+                          ? Colors.cyanAccent.shade400.withValues(alpha: 0.8)
+                          : Colors.white.withValues(alpha: 0.15),
                       width: isSelected ? 2.5 : 1.0,
                     ),
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
-                              color: Colors.cyanAccent.withOpacity(0.3),
+                              color: Colors.cyanAccent.withValues(alpha: 0.3),
                               blurRadius: 10,
                               spreadRadius: 2,
                             ),
                           ]
                         : [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.3),
+                              color: Colors.black.withValues(alpha: 0.3),
                               blurRadius: 3,
                               offset: const Offset(1, 1),
                             ),
@@ -1504,25 +1542,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                           ],
                         ),
                       ),
-
-                      if (isSelected)
-                        AnimatedScale(
-                          duration: const Duration(milliseconds: 250),
-                          scale: isSelected ? 1.0 : 0.0,
-                          child: Container(
-                            margin: const EdgeInsets.only(left: 8),
-                            padding: const EdgeInsets.all(3),
-                            decoration: BoxDecoration(
-                              color: Colors.cyanAccent.shade400,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.check_rounded,
-                              size: 14,
-                              color: Colors.indigo.shade900,
-                            ),
-                          ),
-                        ),
                     ],
                   ),
                 ),
