@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'dart:ui';
 
 import 'package:auxtrack/helpers/custom_notification.dart';
@@ -13,7 +12,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'helpers/api_controller.dart';
-import 'helpers/http_overrides.dart';
 import 'helpers/idle_service.dart';
 import 'helpers/recording_service.dart';
 import 'main.dart';
@@ -33,7 +31,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   TabController? _tabController;
   final recorder = VideoRecorderController();
   final capturer = PeriodicCaptureController();
-  String _stateAux = "Time In";
+  String? _stateAux;
 
   Timer? _timer;
   Duration _elapsedTime = Duration.zero;
@@ -49,7 +47,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     _loadAuxiliariesFromLocal();
     // IdleService.instance.initialize();
     // _idleSubscription = IdleService.instance.idleStateStream.listen((isIdle) {
-    //   ApiController.instance.createEmployeeIdle(isIdle);
+
     // });
 
     WebSocketService().connect();
@@ -134,26 +132,41 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   }
 
   void _createEmployeeLogPersonalBreak() async {
-    final response = await ApiController.instance.createEmployeeLog("Personal Break");
-    if(response['code'] == 200){
+    final sub = "Personal Break";
+    final response = await ApiController.instance.createEmployeeLog(sub);
+    if (response['code'] == 200) {
+      setState(() {
+        _stateAux = sub;
+      });
       _startTimer();
       CustomNotification.info(context, response['message']);
-    }else if(response['code'] == 409){
+    } else if (response['code'] == 409) {
+      setState(() {
+        _stateAux = sub;
+      });
       _startTimer(Duration(seconds: response['elapsedTime']));
       CustomNotification.warning(context, response['message']);
     }
   }
 
   void _createEmployeeLogTimeIn() async {
-    final response = await ApiController.instance.createEmployeeLog("Time In");
-    if(response['code'] == 200){
+    final sub = "Time In";
+    final response = await ApiController.instance.createEmployeeLog(sub);
+    if (response['code'] == 200) {
+      // Auxiliary? result = findAuxiliaryBySub(sub);
+      // print(result?.sub);
+      setState(() {
+        _stateAux = sub;
+      });
       _startTimer();
       CustomNotification.info(context, response['message']);
-    }else if(response['code'] == 409){
+    } else if (response['code'] == 409) {
+      setState(() {
+        _stateAux = sub;
+      });
       _startTimer(Duration(seconds: response['elapsedTime']));
       CustomNotification.warning(context, response['message']);
     }
-
   }
 
   IconData _getCategoryIcon(String category) {
@@ -219,8 +232,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
         throw Exception('change aux User info not found. Please login first.');
       }
       await ApiController.instance.createEmployeeLog("OFF");
-
-      // _stopScreenRecording();
       capturer.stopCapturing();
       await ApiController.instance.logout();
       await WindowModes.normal();
@@ -239,6 +250,20 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
           ),
         );
       }
+    }
+  }
+
+  Auxiliary? findAuxiliaryBySub(String sub) {
+    try {
+      // Flatten all categories and search
+      return _auxiliariesByCategory.values
+          .expand((list) => list) // Flatten the lists
+          .firstWhere(
+            (aux) => aux.sub == sub,
+            orElse: () => throw Exception('Not found'),
+          );
+    } catch (e) {
+      return null;
     }
   }
 
@@ -663,7 +688,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                           controller: username,
                           style: const TextStyle(color: Colors.white),
                           decoration: const InputDecoration(
-
                             hintText: 'Enter username',
                             hintStyle: TextStyle(
                               color: Colors.white54,
@@ -730,11 +754,14 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
 
                           const SizedBox(width: 11),
 
-
                           Expanded(
                             child: ElevatedButton(
                               onPressed: () async {
-                                final confirm = await ApiController.instance.confirmCredential(username.text, password.text);
+                                final confirm = await ApiController.instance
+                                    .confirmCredential(
+                                      username.text,
+                                      password.text,
+                                    );
                                 Navigator.pop(context, confirm);
                               },
                               style: ElevatedButton.styleFrom(
@@ -777,38 +804,39 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                 'change aux User info not found. Please login first.',
               );
             }
-            final response = await ApiController.instance.createEmployeeLog(_selectedAux!['sub']);
-            setState(() {
-              _stateAux = _selectedAux!['sub'];
-            });
-            if(response['code'] == 200){
+            final response = await ApiController.instance.createEmployeeLog(
+              _selectedAux!['sub'],
+            );
+
+            if (response['code'] == 200) {
+              setState(() {
+                _stateAux = _selectedAux!['sub'];
+              });
               _startTimer();
               CustomNotification.info(context, response['message']);
-            }else if(response['code'] == 409){
+            } else if (response['code'] == 409) {
+              setState(() {
+                _stateAux = _selectedAux!['sub'];
+              });
               _startTimer(Duration(seconds: response['elapsedTime']));
               CustomNotification.warning(context, response['message']);
             }
-          }else{
+          } else {
             if (mounted) {
-              CustomNotification.error(
-                context,
-                "Failed to request OT",
-              );
+              CustomNotification.error(context, "Failed to request OT");
             }
           }
         } catch (e) {
           if (mounted) {
-            CustomNotification.error(
-              context,
-              "Failed to request OT",
-            );
+            CustomNotification.error(context, "Failed to request OT");
           }
         }
+      } else if (confirmResult == "false") {
+        CustomNotification.error(context, "Credentials incorrect.");
+        setState(() {
+          _selectedAux = null;
+        });
       } else {
-        CustomNotification.error(
-          context,
-          "Credentials incorrect.",
-        );
         setState(() {
           _selectedAux = null;
         });
@@ -966,7 +994,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       },
     );
 
-
     if (result == true) {
       if (mounted) {
         if (_selectedAux!['sub'] == "OFF") {
@@ -978,18 +1005,19 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
               'change aux User info not found. Please login first.',
             );
           }
-          final response = await ApiController.instance.createEmployeeLog(_selectedAux!['sub']);
+          final response = await ApiController.instance.createEmployeeLog(
+            _selectedAux!['sub'],
+          );
           setState(() {
             _stateAux = _selectedAux!['sub'];
           });
-          if(response['code'] == 200){
+          if (response['code'] == 200) {
             _startTimer();
             CustomNotification.info(context, response['message']);
-          }else if(response['code'] == 409){
+          } else if (response['code'] == 409) {
             _startTimer(Duration(seconds: response['elapsedTime']));
             CustomNotification.warning(context, response['message']);
           }
-
         }
       }
     } else {
@@ -1504,25 +1532,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                           ],
                         ),
                       ),
-
-                      if (isSelected)
-                        AnimatedScale(
-                          duration: const Duration(milliseconds: 250),
-                          scale: isSelected ? 1.0 : 0.0,
-                          child: Container(
-                            margin: const EdgeInsets.only(left: 8),
-                            padding: const EdgeInsets.all(3),
-                            decoration: BoxDecoration(
-                              color: Colors.cyanAccent.shade400,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.check_rounded,
-                              size: 14,
-                              color: Colors.indigo.shade900,
-                            ),
-                          ),
-                        ),
                     ],
                   ),
                 ),
