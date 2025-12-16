@@ -45,7 +45,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     WindowModes.restricted();
     windowManager.addListener(this);
     _loadAuxiliariesFromLocal();
-    // IdleService.instance.initialize();
+    IdleService.instance.initialize();
     // _idleSubscription = IdleService.instance.idleStateStream.listen((isIdle) {
 
     // });
