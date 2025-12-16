@@ -58,7 +58,9 @@ class ApiController {
       final userInfo = await loadUserInfo();
 
       if (userInfo == null || userInfo['id'] == null) {
-        throw Exception('getAuxiliaries: User info not found. Please login first.');
+        throw Exception(
+          'getAuxiliaries: User info not found. Please login first.',
+        );
       }
 
       final headers = await _headers();
@@ -67,8 +69,8 @@ class ApiController {
 
       final base = Uri.parse(baseUrl);
 
-      final protocol = base.scheme;  // http or https
-      final host = base.host;        // domain or IP
+      final protocol = base.scheme; // http or https
+      final host = base.host; // domain or IP
       final port = base.hasPort ? base.port : null;
       print(base);
       print(protocol);
@@ -122,14 +124,17 @@ class ApiController {
         final Map<String, dynamic> data = jsonDecode(response.body);
         await _saveToken(data['access_token']);
         await getReverbAppKey();
-        await getUserInfo();
+        final successfullyGetUserInfo = await getUserInfo();
+        if (!successfullyGetUserInfo) return false;
         await getAuxiliaries();
         return true;
       } else {
         print('Login failed: ${response.statusCode} - ${response.body}');
+        return false;
       }
     } catch (e) {
       print('Error during login: $e');
+      return false;
     }
     return false;
   }
@@ -185,7 +190,6 @@ class ApiController {
       );
 
       return jsonDecode(response.body);
-
     } catch (e) {
       print('Error creating employee log: $e');
     }
@@ -296,7 +300,7 @@ class ApiController {
   }
 
   /// Get user info from API and save to localStorage (no return)
-  Future<void> getUserInfo() async {
+  Future<bool> getUserInfo() async {
     try {
       final baseUrl = await Configuration.instance.get("baseUrl");
       final headers = await _headers();
@@ -307,25 +311,29 @@ class ApiController {
         print('User info fetched successfully.');
         final userInfo = jsonDecode(response.body);
         await _saveUserInfo(userInfo); // Save to localStorage
+        return true;
       } else {
         print('Failed to fetch user info: ${response.statusCode}');
+        return false;
       }
     } catch (e) {
       print('Error fetching user info: $e');
+      return false;
     }
   }
 
   Future<String> confirmCredential(String username, String password) async {
     final baseUrl = await Configuration.instance.get("baseUrl");
-    final headers = await  _headers();
+    final headers = await _headers();
 
     final uri = Uri.parse("$baseUrl/confirm-credentials");
-    final params = {
-      "username" : username,
-      "password" : password,
-    };
+    final params = {"username": username, "password": password};
 
-    final response = await http.post(uri, headers: headers, body: jsonEncode(params));
+    final response = await http.post(
+      uri,
+      headers: headers,
+      body: jsonEncode(params),
+    );
     return response.body;
   }
 

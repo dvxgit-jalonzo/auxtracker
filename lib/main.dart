@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:auxtrack/helpers/custom_notification.dart';
 import 'package:auxtrack/helpers/window_modes.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -52,10 +53,10 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> with WindowListener {
   final _formKey = GlobalKey<FormState>();
-  // final _usernameController = TextEditingController();
-  // final _passwordController = TextEditingController();
-  final _usernameController = TextEditingController(text: "admin");
-  final _passwordController = TextEditingController(text: "admin123");
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+  // final _usernameController = TextEditingController(text: "admin");
+  // final _passwordController = TextEditingController(text: "admin123");
   bool _isPasswordVisible = false;
   bool _isLoading = false;
 
@@ -103,11 +104,12 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
           }
         } else {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Invalid username or password'),
-                backgroundColor: Colors.red,
-              ),
+            CustomNotification.error(context, "Invalid username or password");
+            await Future.delayed(Duration(seconds: 4));
+            CustomNotification.error(
+              context,
+              "The user must have site.",
+              title: "Site Error",
             );
           }
         }
