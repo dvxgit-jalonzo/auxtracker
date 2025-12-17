@@ -1,8 +1,11 @@
 import 'dart:convert';
 
 import 'package:auxtrack/helpers/configuration.dart';
+import 'package:auxtrack/helpers/periodic_capture_controller.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'idle_service.dart';
 
 class ApiController {
   // Singleton pattern
@@ -169,6 +172,7 @@ class ApiController {
     _accessToken = null;
   }
 
+
   /// Create employee log
   Future<dynamic> createEmployeeLog(String sub) async {
     try {
@@ -188,10 +192,39 @@ class ApiController {
         headers: headers,
         body: jsonEncode({"employee_id": employeeId, "sub": sub}),
       );
+      final result = jsonDecode(response.body);
 
-      return jsonDecode(response.body);
+      // ✅ Check result code first!
+      if (result['code'] == 200) {
+
+        final enabledStates = ["On Shift", "Calling", "SMS", "Lunch OT"];
+
+        final capturer = PeriodicCaptureController();
+
+        if (enabledStates.contains(sub)) {
+          print('✅ Enabling idle detection for: $sub');
+          await IdleService.instance.updateConfig(
+            IdleService.instance.config.copyWith(enabled: true),
+          );
+          if (userInfo['enable_screen_capture'] == 1) {
+            capturer.startCapturing();
+          }
+        } else {
+          // Time In, Break, Lunch, Meeting, etc. - DISABLE
+          print('❌ Disabling idle detection for: $sub');
+          await IdleService.instance.updateConfig(
+            IdleService.instance.config.copyWith(enabled: false),
+          );
+          if (userInfo['enable_screen_capture'] == 1) {
+            capturer.startCapturing();
+          }
+        }
+      }
+
+      return result;
     } catch (e) {
       print('Error creating employee log: $e');
+      rethrow;
     }
   }
 
