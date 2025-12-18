@@ -674,11 +674,10 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
             );
           }
         }
-      } else {
-        setState(() {
-          _selectedAux = null;
-        });
       }
+      setState(() {
+        _selectedAux = null;
+      });
       return; // Exit early for Personal Break
     }
     if (_selectedAux!['main'] == "OT" ||
