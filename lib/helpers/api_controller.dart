@@ -228,22 +228,67 @@ class ApiController {
     }
   }
 
+  Future<bool> deletePersonalBreak() async {
+    try {
+      final baseUrl = await Configuration.instance.get("baseUrl");
+      final headers = await _headers();
+      final userInfo = await loadUserInfo();
+
+      if (userInfo == null || userInfo['id'] == null) {
+        print('User info not found.');
+        return false;
+      }
+
+      final employeeId = userInfo['id'];
+      final siteId = userInfo['site_id'];
+      final url = Uri.parse('$baseUrl/delete-personal-break');
+
+      Map<String, dynamic> params = {
+        "site_id": siteId,
+        "employee_id": employeeId,
+      };
+
+      final response = await http.post(
+        url,
+        headers: headers,
+        body: jsonEncode(params),
+      );
+
+      if (response.statusCode == 200) {
+        // I-decode ang response (true/false na galing sa Laravel)
+        final bool isDeleted = jsonDecode(response.body);
+
+        if (isDeleted) {
+          print('Personal break record actually removed from DB.');
+          return true;
+        } else {
+          print('No pending break found to delete.');
+          return false;
+        }
+      } else {
+        print('Server Error: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      print('Error deleting personal break: $e');
+      return false;
+    }
+  }
   Future<bool> createPersonalBreak(String reason) async {
     try {
       final baseUrl = await Configuration.instance.get("baseUrl");
       final headers = await _headers();
       final userInfo = await loadUserInfo();
+
       if (userInfo == null || userInfo['id'] == null) {
-        throw Exception(
-          'create personal break User info not found. Please login first.',
-        );
+        print('Error: User info not found.');
+        return false;
       }
+
       final employeeId = userInfo['id'];
-      final siteId = userInfo['site_id'];
       final url = Uri.parse('$baseUrl/create-personal-break');
 
       Map<String, dynamic> params = {
-        "site_id": siteId,
         "employee_id": employeeId,
         "reason": reason,
       };
@@ -254,19 +299,26 @@ class ApiController {
         body: jsonEncode(params),
       );
 
-      if (response.statusCode != 200) {
-        print(
-          'Failed to create personal break. Status: ${response.statusCode}, Body: ${response.body}',
-        );
+      if (response.statusCode == 200) {
+        // Dito natin kukunin yung true/false na galing sa Laravel
+        final bool isCreated = jsonDecode(response.body);
+
+        if (isCreated) {
+          print('Personal break created successfully.');
+          return true;
+        } else {
+          print('Request denied: Employee might already have a pending break.');
+          return false;
+        }
+      } else {
+        print('Failed to connect. Status: ${response.statusCode}');
+        return false;
       }
-      print('Personal break created successfully.');
-      return true;
     } catch (e) {
       print('Error creating personal break: $e');
       return false;
     }
   }
-
   /// Update employee idle status
   Future<void> createEmployeeIdle(bool isIdle) async {
     try {
