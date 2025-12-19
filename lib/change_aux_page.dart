@@ -38,9 +38,10 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   Timer? _timer;
   Duration _elapsedTime = Duration.zero;
   String _formattedTime = "00:00:00";
-  String? _currentStatus;
+
   StreamSubscription<bool>? _idleSubscription;
   StreamSubscription<IdleServiceConfig>? _configSubscription;
+  bool _hasPersonalBreakRequest = false;
 
   @override
   void initState() {
@@ -56,12 +57,13 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       if (message['event'] == "personalBreakResponse") {
         final data = message['data'];
         final status = data['status'];
-        setState(() {
-          _currentStatus = status;
-        });
+
         if (status == "APPROVED") {
           _createEmployeeLogPersonalBreak();
         }
+        setState(() {
+          _hasPersonalBreakRequest = false;
+        });
       }
 
       if (message['event'] == "logoutEmployeeEvent") {
@@ -149,11 +151,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     IdleService.instance.dispose();
     super.dispose();
   }
-  void _dismissStatus() {
-    setState(() {
-      _currentStatus = null; // Setting to null hides the widget
-    });
-  }
+
 
   void _startTimer([Duration elapsedTime = Duration.zero]) {
     _timer?.cancel();
@@ -658,6 +656,9 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
           if (mounted) {
             if (success) {
               final message = "Request Sent";
+              setState(() {
+                _hasPersonalBreakRequest = true;
+              });
               CustomNotification.info(context, message);
             } else {
               CustomNotification.error(
@@ -1250,86 +1251,62 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                   ),
                 ),
 
-                // --- NEW: Status Indicator Overlay ---
-                if (_currentStatus != null)
+                if(_hasPersonalBreakRequest) ...[
                   Positioned(
-                    top: 20,
-                    left: 8, // Add padding from edges
-                    right: 8,
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        // Determine size based on available width
-                        final isNarrow = constraints.maxWidth < 300;
-                        final isVeryNarrow = constraints.maxWidth < 200;
+                    bottom: 10,
+                    left: 12,
+                    right: 12,
+                    child: Material(
+                      elevation: 6,
+                      borderRadius: BorderRadius.circular(14),
+                      color: Colors.blueGrey.shade900,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.timelapse_rounded,
+                              color: Colors.white70,
+                              size: 20,
+                            ),
 
-                        return Center(
-                          child: GestureDetector(
-                            onTap: _dismissStatus,
-                            child:Flexible(
-                              child: Container(
-                                constraints: BoxConstraints(
-                                  maxWidth: constraints.maxWidth - 16,
-                                ),
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: isVeryNarrow ? 8 : (isNarrow ? 12 : 16),
-                                  vertical: isVeryNarrow ? 6 : (isNarrow ? 8 : 10),
-                                ),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Colors.deepPurple.shade500,
-                                      Colors.blue.shade900,
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(10),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.4),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    if (!isVeryNarrow) ...[
-                                      Icon(
-                                        Icons.notifications_active_rounded,
-                                        color: Colors.white,
-                                        size: isNarrow ? 16 : 18,
-                                      ),
-                                      SizedBox(width: isNarrow ? 6 : 8),
-                                    ],
-                                    Flexible(
-                                      child: Text(
-                                        'Personal Brake has been $_currentStatus',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: isVeryNarrow ? 11 : (isNarrow ? 12 : 13),
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                        maxLines: 2,
-                                      ),
-                                    ),
-                                    SizedBox(width: isNarrow ? 6 : 10),
-                                    Icon(
-                                      Icons.close,
-                                      color: Colors.white.withValues(alpha: 0.7),
-                                      size: isNarrow ? 14 : 16,
-                                    ),
-                                  ],
+                            const SizedBox(width: 12),
+
+                            const Expanded(
+                              child: Text(
+                                "Break request in progress",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ),
-                          ),
-                        );
-                      },
+
+                            TextButton(
+                              onPressed: () async {
+                                final status = await ApiController.instance.deletePersonalBreak();
+                                if(status){
+                                  setState(() {
+                                    _hasPersonalBreakRequest = false;
+                                  });
+                                }
+                              },
+                              child: const Text(
+                                "CANCEL",
+                                style: TextStyle(
+                                  color: Colors.redAccent,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
+                ]
               ],
             ),
           ),
@@ -1337,6 +1314,8 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       ),
     );
   }
+
+
 
   Widget _buildAuxiliaryList(List<Auxiliary> auxiliaries) {
     return Padding(
