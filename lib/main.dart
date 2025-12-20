@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'app_navigator.dart';
 import 'change_aux_page.dart';
 import 'helpers/api_controller.dart';
 import 'helpers/http_overrides.dart';
@@ -38,6 +39,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       home: const LoginPage(),
     );
@@ -104,10 +106,9 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
           }
         } else {
           if (mounted) {
-            CustomNotification.error(context, "Invalid username or password");
+            CustomNotification.error("Invalid username or password");
             await Future.delayed(Duration(seconds: 4));
             CustomNotification.error(
-              context,
               "The user must have site.",
               title: "Site Error",
             );

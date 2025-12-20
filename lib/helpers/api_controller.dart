@@ -1,7 +1,12 @@
 import 'dart:convert';
 
+import 'package:auxtrack/app_navigator.dart';
 import 'package:auxtrack/helpers/configuration.dart';
+import 'package:auxtrack/helpers/custom_notification.dart';
 import 'package:auxtrack/helpers/periodic_capture_controller.dart';
+import 'package:auxtrack/helpers/window_modes.dart';
+import 'package:auxtrack/main.dart';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -13,6 +18,13 @@ class ApiController {
   static final ApiController instance = ApiController._privateConstructor();
 
   String? _accessToken;
+
+  void _displayHostInfo(Uri base) {
+    print(base.toString());
+    print(base.scheme);
+    print(base.host);
+    print(base.hasPort ? base.port : null);
+  }
 
   /// Load token from SharedPreferences
   Future<void> _loadToken() async {
@@ -51,6 +63,7 @@ class ApiController {
     } catch (e) {
       final message = e.toString();
       print(message);
+      await forceLogout();
       rethrow;
     }
   }
@@ -72,13 +85,10 @@ class ApiController {
 
       final base = Uri.parse(baseUrl);
 
-      final protocol = base.scheme; // http or https
-      final host = base.host; // domain or IP
+      final protocol = base.scheme;
+      final host = base.host;
       final port = base.hasPort ? base.port : null;
-      print(base);
-      print(protocol);
-      print(host);
-      print(port);
+      _displayHostInfo(base);
 
       final params = {
         "employee_id": employeeId.toString(),
@@ -109,6 +119,8 @@ class ApiController {
       }
     } catch (e) {
       print("Error getting auxiliaries: $e");
+      CustomNotification.error("Error getting auxiliaries");
+      await forceLogout();
     }
   }
 
@@ -172,7 +184,6 @@ class ApiController {
     _accessToken = null;
   }
 
-
   /// Create employee log
   Future<dynamic> createEmployeeLog(String sub) async {
     try {
@@ -196,7 +207,6 @@ class ApiController {
 
       // ✅ Check result code first!
       if (result['code'] == 200) {
-
         final enabledStates = ["On Shift", "Calling", "SMS", "Lunch OT"];
 
         final capturer = PeriodicCaptureController();
@@ -223,9 +233,22 @@ class ApiController {
 
       return result;
     } catch (e) {
-      print('Error creating employee log: $e');
+      CustomNotification.error("Error creating employee log");
+      await forceLogout();
       rethrow;
     }
+  }
+
+  Future<void> forceLogout() async {
+    await Future.delayed(const Duration(seconds: 3));
+    CustomNotification.error("Token Expired!");
+    await Future.delayed(const Duration(seconds: 3));
+    await ApiController.instance.logout();
+    await WindowModes.normal();
+    navigatorKey.currentState?.pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginPage()),
+      (_) => false,
+    );
   }
 
   Future<bool> deletePersonalBreak() async {
@@ -270,10 +293,12 @@ class ApiController {
         return false;
       }
     } catch (e) {
-      print('Error deleting personal break: $e');
+      CustomNotification.error("Error deleting personal break");
+      await forceLogout();
       return false;
     }
   }
+
   Future<bool> createPersonalBreak(String reason) async {
     try {
       final baseUrl = await Configuration.instance.get("baseUrl");
@@ -300,7 +325,6 @@ class ApiController {
       );
 
       if (response.statusCode == 200) {
-        // Dito natin kukunin yung true/false na galing sa Laravel
         final bool isCreated = jsonDecode(response.body);
 
         if (isCreated) {
@@ -315,10 +339,12 @@ class ApiController {
         return false;
       }
     } catch (e) {
-      print('Error creating personal break: $e');
+      CustomNotification.error("Error creating personal break");
+      await forceLogout();
       return false;
     }
   }
+
   /// Update employee idle status
   Future<void> createEmployeeIdle(bool isIdle) async {
     try {
@@ -356,6 +382,7 @@ class ApiController {
       }
     } catch (e) {
       print('Error updating employee idle: $e');
+      await forceLogout();
     }
   }
 
@@ -427,6 +454,6 @@ class ApiController {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
     _accessToken = null;
-    print('Logged out.');
+    print('Clearing cache.');
   }
 }

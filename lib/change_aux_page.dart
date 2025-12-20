@@ -72,8 +72,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
         _handleLogout();
       }
     });
-
-
   }
 
   Future<void> _initializeApp() async {
@@ -86,7 +84,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
 
       // 3. Listen to config changes
       _listenToIdleConfig();
-
     } catch (e) {
       print('Error initializing app: $e');
     }
@@ -111,7 +108,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     _idleSubscription?.cancel();
 
     _idleSubscription = IdleService.instance.idleStateStream.listen(
-          (isIdle) {
+      (isIdle) {
         print('🔔 Idle state changed in UI: $isIdle');
         if (mounted) {
           setState(() {
@@ -129,7 +126,8 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   void _listenToIdleConfig() {
     _configSubscription = IdleService.instance.configStream.listen((config) {
       print(
-          '🔔 Config changed - enabled: ${config.enabled}, initialized: ${IdleService.instance.isInitialized}');
+        '🔔 Config changed - enabled: ${config.enabled}, initialized: ${IdleService.instance.isInitialized}',
+      );
 
       if (config.enabled && IdleService.instance.isInitialized) {
         Future.delayed(Duration(milliseconds: 100), () {
@@ -151,7 +149,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     IdleService.instance.dispose();
     super.dispose();
   }
-
 
   void _startTimer([Duration elapsedTime = Duration.zero]) {
     _timer?.cancel();
@@ -180,8 +177,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     return "$hours:$minutes:$seconds";
   }
 
-
-
   void _createEmployeeLogPersonalBreak() async {
     final sub = "Personal Break";
     final response = await ApiController.instance.createEmployeeLog(sub);
@@ -190,13 +185,13 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
         _stateAux = sub;
       });
       _startTimer();
-      CustomNotification.info(context, response['message']);
+      CustomNotification.info(response['message']);
     } else if (response['code'] == 409) {
       setState(() {
         _stateAux = sub;
       });
       _startTimer(Duration(seconds: response['elapsedTime']));
-      CustomNotification.warning(context, response['message']);
+      CustomNotification.warning(response['message']);
     }
   }
 
@@ -210,13 +205,13 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
         _stateAux = sub;
       });
       _startTimer();
-      CustomNotification.info(context, response['message']);
+      CustomNotification.info(response['message']);
     } else if (response['code'] == 409) {
       setState(() {
         _stateAux = sub;
       });
       _startTimer(Duration(seconds: response['elapsedTime']));
-      CustomNotification.warning(context, response['message']);
+      CustomNotification.warning(response['message']);
     }
   }
 
@@ -293,12 +288,8 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Logout error: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        CustomNotification.error("Logout Error");
+        await ApiController.instance.forceLogout();
       }
     }
   }
@@ -479,8 +470,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     if (result == true) {
       if (mounted) {
         _handleLogout();
-        final message = "Aux set to OFF";
-        CustomNotification.info(context, message);
       }
     }
   }
@@ -659,20 +648,14 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
               setState(() {
                 _hasPersonalBreakRequest = true;
               });
-              CustomNotification.info(context, message);
+              CustomNotification.info(message);
             } else {
-              CustomNotification.error(
-                context,
-                "Failed to request Personal Break",
-              );
+              CustomNotification.error("Failed to request Personal Break");
             }
           }
         } catch (e) {
           if (mounted) {
-            CustomNotification.error(
-              context,
-              "Failed to request Personal Break",
-            );
+            CustomNotification.error("Failed to request Personal Break");
           }
         }
       }
@@ -872,26 +855,26 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                 _stateAux = _selectedAux!['sub'];
               });
               _startTimer();
-              CustomNotification.info(context, response['message']);
+              CustomNotification.info(response['message']);
             } else if (response['code'] == 409) {
               setState(() {
                 _stateAux = _selectedAux!['sub'];
               });
               _startTimer(Duration(seconds: response['elapsedTime']));
-              CustomNotification.warning(context, response['message']);
+              CustomNotification.warning(response['message']);
             }
           } else {
             if (mounted) {
-              CustomNotification.error(context, "Failed to request OT");
+              CustomNotification.error("Failed to request OT");
             }
           }
         } catch (e) {
           if (mounted) {
-            CustomNotification.error(context, "Failed to request OT");
+            CustomNotification.error("Failed to request OT");
           }
         }
       } else if (confirmResult == "false") {
-        CustomNotification.error(context, "Credentials incorrect.");
+        CustomNotification.error("Credentials incorrect.");
         setState(() {
           _selectedAux = null;
         });
@@ -921,10 +904,10 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
         });
         if (response['code'] == 200) {
           _startTimer();
-          CustomNotification.info(context, response['message']);
+          CustomNotification.info(response['message']);
         } else if (response['code'] == 409) {
           _startTimer(Duration(seconds: response['elapsedTime']));
-          CustomNotification.warning(context, response['message']);
+          CustomNotification.warning(response['message']);
         }
       }
     }
@@ -989,25 +972,27 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                 children: [
                                   const SizedBox(width: 6), // 8 → 6
                                   Flexible(
-                                    child: _isIdle ? Text("Inactive",
-                                        style: TextStyle(
-                                          color: Colors.lightGreenAccent,
-                                          fontSize: 12, // 14 → 12
-                                          fontWeight: FontWeight.w600,
-                                          letterSpacing: 0.8, // 1.0 → 0.8
-                                        ),
-                                      overflow: TextOverflow.ellipsis
-                                    ) :
-                                    Text(
-                                      _stateAux ?? "NOT LOGGED",
-                                      style: TextStyle(
-                                        color: Colors.lightGreenAccent,
-                                        fontSize: 12, // 14 → 12
-                                        fontWeight: FontWeight.w600,
-                                        letterSpacing: 0.8, // 1.0 → 0.8
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
+                                    child: _isIdle
+                                        ? Text(
+                                            "Inactive",
+                                            style: TextStyle(
+                                              color: Colors.lightGreenAccent,
+                                              fontSize: 12, // 14 → 12
+                                              fontWeight: FontWeight.w600,
+                                              letterSpacing: 0.8, // 1.0 → 0.8
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          )
+                                        : Text(
+                                            _stateAux ?? "NOT LOGGED",
+                                            style: TextStyle(
+                                              color: Colors.lightGreenAccent,
+                                              fontSize: 12, // 14 → 12
+                                              fontWeight: FontWeight.w600,
+                                              letterSpacing: 0.8, // 1.0 → 0.8
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
                                   ),
                                   const SizedBox(width: 5), // 15 → 10
 
@@ -1251,7 +1236,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                   ),
                 ),
 
-                if(_hasPersonalBreakRequest) ...[
+                if (_hasPersonalBreakRequest) ...[
                   Positioned(
                     bottom: 10,
                     left: 12,
@@ -1261,7 +1246,10 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                       borderRadius: BorderRadius.circular(14),
                       color: Colors.blueGrey.shade900,
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
                         child: Row(
                           children: [
                             const Icon(
@@ -1285,8 +1273,9 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
 
                             TextButton(
                               onPressed: () async {
-                                final status = await ApiController.instance.deletePersonalBreak();
-                                if(status){
+                                final status = await ApiController.instance
+                                    .deletePersonalBreak();
+                                if (status) {
                                   setState(() {
                                     _hasPersonalBreakRequest = false;
                                   });
@@ -1306,7 +1295,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                       ),
                     ),
                   ),
-                ]
+                ],
               ],
             ),
           ),
@@ -1314,8 +1303,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       ),
     );
   }
-
-
 
   Widget _buildAuxiliaryList(List<Auxiliary> auxiliaries) {
     return Padding(

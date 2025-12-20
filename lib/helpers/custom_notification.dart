@@ -1,37 +1,45 @@
 import 'package:flutter/material.dart';
 
+import '../app_navigator.dart';
+
 class CustomNotification {
   static OverlayEntry? _currentOverlay;
 
-  static void show(
-    BuildContext context, {
+  static OverlayState? get _overlay => navigatorKey.currentState?.overlay;
+
+  static BuildContext? get _context => navigatorKey.currentContext;
+
+  static void show({
     required String message,
     required NotificationType type,
     Duration duration = const Duration(seconds: 3),
     String? title,
   }) {
+    final overlay = _overlay;
+    final context = _context;
+
+    if (overlay == null || context == null) return;
+
     // Remove existing notification if any
     try {
       _currentOverlay?.remove();
-    } catch (e) {
-      // Overlay already removed or not mounted
-    }
+    } catch (_) {}
 
-    final overlay = Overlay.of(context);
     final size = MediaQuery.sizeOf(context);
-
-    // Responsive calculations
     final isMobile = size.width < 600;
     final notifWidth = isMobile ? size.width * 0.9 : 400.0;
 
     _currentOverlay = OverlayEntry(
-      builder: (context) => _NotificationWidget(
+      builder: (_) => _NotificationWidget(
         message: message,
         type: type,
         width: notifWidth,
         duration: duration,
         title: title,
-        onDismiss: () => _currentOverlay?.remove(),
+        onDismiss: () {
+          _currentOverlay?.remove();
+          _currentOverlay = null;
+        },
       ),
     );
 
@@ -44,30 +52,20 @@ class CustomNotification {
     });
   }
 
-  static void success(BuildContext context, String message, {String? title}) {
-    show(
-      context,
-      message: message,
-      type: NotificationType.success,
-      title: title,
-    );
+  static void success(String message, {String? title}) {
+    show(message: message, type: NotificationType.success, title: title);
   }
 
-  static void error(BuildContext context, String message, {String? title}) {
-    show(context, message: message, type: NotificationType.error, title: title);
+  static void error(String message, {String? title}) {
+    show(message: message, type: NotificationType.error, title: title);
   }
 
-  static void info(BuildContext context, String message, {String? title}) {
-    show(context, message: message, type: NotificationType.info, title: title);
+  static void info(String message, {String? title}) {
+    show(message: message, type: NotificationType.info, title: title);
   }
 
-  static void warning(BuildContext context, String message, {String? title}) {
-    show(
-      context,
-      message: message,
-      type: NotificationType.warning,
-      title: title,
-    );
+  static void warning(String message, {String? title}) {
+    show(message: message, type: NotificationType.warning, title: title);
   }
 }
 
