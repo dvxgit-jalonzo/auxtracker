@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:auxtrack/app_navigator.dart';
+import 'package:auxtrack/enums/employee_log_error.dart';
 import 'package:auxtrack/helpers/configuration.dart';
 import 'package:auxtrack/helpers/custom_notification.dart';
 import 'package:auxtrack/helpers/periodic_capture_controller.dart';
@@ -189,11 +190,11 @@ class ApiController {
     try {
       final baseUrl = await Configuration.instance.get("baseUrl");
       final userInfo = await loadUserInfo();
+
       if (userInfo == null || userInfo['id'] == null) {
-        throw Exception(
-          'create employee log User info not found. Please login first.',
-        );
+        throw Exception('User info not found. Please login first.');
       }
+
       final headers = await _headers();
       final employeeId = userInfo['id'];
       final url = Uri.parse('$baseUrl/create-employee-log');
@@ -203,10 +204,14 @@ class ApiController {
         headers: headers,
         body: jsonEncode({"employee_id": employeeId, "sub": sub}),
       );
-      final result = jsonDecode(response.body);
 
-      // ✅ Check result code first!
-      if (result['code'] == 200) {
+      final result = jsonDecode(response.body);
+      final error = EmployeeLogError.fromCode(result['error_code'] as String?);
+
+      // =========================
+      // ✅ SUCCESS FLOW
+      // =========================
+      if (error == EmployeeLogError.success) {
         final enabledStates = ["On Shift", "Calling", "SMS", "Lunch OT"];
 
         final capturer = PeriodicCaptureController();
@@ -216,19 +221,44 @@ class ApiController {
           await IdleService.instance.updateConfig(
             IdleService.instance.config.copyWith(enabled: true),
           );
-          if (userInfo['enable_screen_capture'] == 1) {
-            capturer.startCapturing();
-          }
         } else {
-          // Time In, Break, Lunch, Meeting, etc. - DISABLE
           print('❌ Disabling idle detection for: $sub');
           await IdleService.instance.updateConfig(
             IdleService.instance.config.copyWith(enabled: false),
           );
-          if (userInfo['enable_screen_capture'] == 1) {
-            capturer.startCapturing();
-          }
         }
+
+        if (userInfo['enable_screen_capture'] == 1) {
+          capturer.startCapturing();
+        }
+
+        return result;
+      }
+
+      // =========================
+      // ❌ ERROR FLOW (ENUM-DRIVEN)
+      // =========================
+      switch (error) {
+        case EmployeeLogError.alreadyTimedIn:
+        case EmployeeLogError.alreadyTimedOut:
+        case EmployeeLogError.noTimeIn:
+        case EmployeeLogError.duplicateAux:
+          CustomNotification.warning(result['message']);
+          break;
+
+        case EmployeeLogError.noActiveSchedule:
+        case EmployeeLogError.employeeNotFound:
+          CustomNotification.error(result['message']);
+          break;
+
+        case EmployeeLogError.serverError:
+          CustomNotification.error('Server error. Please try again.');
+          break;
+
+        default:
+          CustomNotification.error(
+            result['message'] ?? 'Something went wrong.',
+          );
       }
 
       return result;
@@ -249,6 +279,52 @@ class ApiController {
       MaterialPageRoute(builder: (_) => const LoginPage()),
       (_) => false,
     );
+  }
+
+  Future<dynamic> getLatestEmployeeLog() async {
+    // get-employee-last-aux
+    try {
+      final baseUrl = await Configuration.instance.get("baseUrl");
+      final userInfo = await loadUserInfo();
+
+      if (userInfo == null || userInfo['id'] == null) {
+        throw Exception(
+          'getLatestEmployeeLog: User info not found. Please login first.',
+        );
+      }
+
+      final headers = await _headers();
+      final employeeId = userInfo['id'];
+      final siteId = userInfo['site_id'];
+
+      final base = Uri.parse(baseUrl);
+
+      final protocol = base.scheme;
+      final host = base.host;
+      final port = base.hasPort ? base.port : null;
+      _displayHostInfo(base);
+
+      final params = {
+        "employee_id": employeeId.toString(),
+        "site_id": siteId.toString(),
+      };
+
+      // Build the GET URL
+      Uri url = protocol == "https"
+          ? Uri.https(host, '/api/get-employee-last-aux', params)
+          : Uri.http(host, '/api/get-employee-last-aux', params);
+
+      if (port != null) {
+        url = url.replace(port: port);
+      }
+
+      // Send GET request
+      final response = await http.get(url, headers: headers);
+      //
+      return jsonDecode(response.body);
+    } catch (e) {
+      CustomNotification.error("Error getting last aux");
+    }
   }
 
   Future<bool> deletePersonalBreak() async {

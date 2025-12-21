@@ -207,11 +207,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       _startTimer();
       CustomNotification.info(response['message']);
     } else if (response['code'] == 409) {
-      setState(() {
-        _stateAux = sub;
-      });
-      _startTimer(Duration(seconds: response['elapsedTime']));
-      CustomNotification.warning(response['message']);
+      await settingLastLog();
     }
   }
 
@@ -913,6 +909,17 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     }
   }
 
+  Future<void> settingLastLog() async {
+    await Future.delayed(Duration(seconds: 3));
+    final response = await ApiController.instance.getLatestEmployeeLog();
+    final lastLog = response['aux_sub'];
+    CustomNotification.info("Setting aux to $lastLog");
+    setState(() {
+      _stateAux = response['aux_sub'];
+    });
+    _startTimer(Duration(seconds: response['elapsedTime']));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1040,6 +1047,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                               ),
                             ),
                           ),
+
                           SizedBox(width: 7),
                           InkWell(
                             borderRadius: BorderRadius.circular(40),
@@ -1200,7 +1208,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                         ),
 
                       const SizedBox(height: 8),
-
                       Expanded(
                         child: _tabController == null
                             ? Center(
