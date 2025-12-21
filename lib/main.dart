@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:auto_updater/auto_updater.dart';
 import 'package:auxtrack/helpers/custom_notification.dart';
 import 'package:auxtrack/helpers/window_modes.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +15,14 @@ import 'helpers/http_overrides.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  if (Platform.isWindows) {
+    String feedURL = 'http://127.0.0.1:8000/api/app-update';
+    await autoUpdater.setFeedURL(feedURL);
+    await autoUpdater.setScheduledCheckInterval(10);
+    await autoUpdater.checkForUpdates(inBackground: true);
+  }
+
   HttpOverrides.global = MyHttpOverrides();
   await WindowModes.normal();
   runApp(const MyApp());
