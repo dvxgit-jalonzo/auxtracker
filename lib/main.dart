@@ -5,19 +5,22 @@ import 'package:auxtrack/helpers/custom_notification.dart';
 import 'package:auxtrack/helpers/window_modes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'app_navigator.dart';
 import 'change_aux_page.dart';
 import 'helpers/api_controller.dart';
+import 'helpers/configuration.dart';
 import 'helpers/http_overrides.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   if (Platform.isWindows) {
-    String feedURL = 'http://127.0.0.1:8000/api/app-update';
+    String feedURL = await Configuration.instance.get("updater");
+    print(feedURL);
     await autoUpdater.setFeedURL(feedURL);
     await autoUpdater.setScheduledCheckInterval(10);
     await autoUpdater.checkForUpdates(inBackground: true);
@@ -71,11 +74,22 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
   // final _passwordController = TextEditingController(text: "admin123");
   bool _isPasswordVisible = false;
   bool _isLoading = false;
+  String _version = "";
+  String _buildNumber = "";
 
   @override
   void initState() {
     super.initState();
+    _getAppVersion();
     windowManager.addListener(this);
+  }
+
+  void _getAppVersion() async {
+    PackageInfo packageInfo = await PackageInfo.fromPlatform();
+    setState(() {
+      _version = packageInfo.version; // Pulls '1.0.0' from pubspec
+      _buildNumber = packageInfo.buildNumber; // Pulls '+1' from pubspec
+    });
   }
 
   @override
@@ -333,6 +347,11 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
                                   ),
                                 ),
                         ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        "Version: $_version (Build: $_buildNumber)",
+                        style: TextStyle(color: Colors.grey),
                       ),
                     ],
                   ),
