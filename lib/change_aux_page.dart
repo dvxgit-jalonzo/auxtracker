@@ -43,6 +43,8 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   StreamSubscription<IdleServiceConfig>? _configSubscription;
   bool _hasPersonalBreakRequest = false;
 
+  late Future<String> _name;
+
   @override
   void initState() {
     super.initState();
@@ -51,7 +53,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     _loadAuxiliariesFromLocal();
 
     _initializeApp();
-
+    _name = _getUsername();
     WebSocketService().connect();
     WebSocketService().messageStream.listen((message) {
       if (message['event'] == "personalBreakResponse") {
@@ -72,6 +74,11 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
         _handleLogout();
       }
     });
+  }
+
+  Future<String> _getUsername() async {
+    final userInfo = await ApiController.instance.loadUserInfo();
+    return userInfo!['name'];
   }
 
   Future<void> _initializeApp() async {
@@ -941,6 +948,30 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      FutureBuilder<String>(
+                        future: _name,
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          }
+
+                          // 3. Return the UI after the data is "ready"
+                          return Center(
+                            child: Text(
+                              snapshot.data?.toUpperCase() ?? "Unknow",
+                              style: TextStyle(
+                                color: Colors.yellow,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 10,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      SizedBox(height: 8),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
