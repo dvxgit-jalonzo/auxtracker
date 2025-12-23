@@ -14,6 +14,7 @@ OutputBaseFilename=auxtracker-setup
 Compression=lzma
 SolidCompression=yes
 InfoBeforeFile=infobeforefile.txt
+UninstallDisplayIcon={app}\auxtrack.exe
 
 ; Icon shown in the installer and Start Menu
 SetupIconFile=assets\images\icon.ico
