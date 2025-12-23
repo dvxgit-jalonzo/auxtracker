@@ -20,9 +20,9 @@ void main() async {
 
   if (Platform.isWindows) {
     String feedURL = await Configuration.instance.get("updater");
-    print(feedURL);
+    print("xml url : $feedURL");
     await autoUpdater.setFeedURL(feedURL);
-    await autoUpdater.setScheduledCheckInterval(10);
+    await autoUpdater.setScheduledCheckInterval(3600);
     await autoUpdater.checkForUpdates(inBackground: true);
   }
 
