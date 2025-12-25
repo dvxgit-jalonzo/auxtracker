@@ -42,6 +42,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   StreamSubscription<bool>? _idleSubscription;
   StreamSubscription<IdleServiceConfig>? _configSubscription;
   bool _hasPersonalBreakRequest = false;
+  DateTime? _startTime;
 
   late Future<String> _name;
 
@@ -160,9 +161,10 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   void _startTimer([Duration elapsedTime = Duration.zero]) {
     _timer?.cancel();
     _elapsedTime = elapsedTime;
+    _startTime = DateTime.now().subtract(elapsedTime);
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
-        _elapsedTime = Duration(seconds: _elapsedTime.inSeconds + 1);
+        _elapsedTime = DateTime.now().difference(_startTime!);
         _formattedTime = _formatDuration(_elapsedTime);
       });
     });
