@@ -75,6 +75,13 @@ class WebSocketService {
         }),
       );
 
+      _channel!.sink.add(
+        json.encode({
+          "event": "pusher:subscribe",
+          "data": {"channel": "messageEvent.$employeeId"},
+        }),
+      );
+
       _isConnected = true;
       _reconnectAttempts = 0;
 

@@ -69,6 +69,12 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
         });
       }
 
+      if (message['event'] == "messageEvent") {
+        final data = message['data'];
+        final content = data['message'];
+        CustomNotification.info(content);
+      }
+
       if (message['event'] == "logoutEmployeeEvent") {
         final data = message['data'];
         final employeeId = data['employee_id'];

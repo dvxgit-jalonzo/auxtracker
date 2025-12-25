@@ -33,25 +33,6 @@ void main() async {
   runApp(const MyApp());
 }
 
-Future<void> _initUpdater() async {
-  if (Platform.isWindows) {
-    try {
-      String feedURL = await Configuration.instance.get("updater");
-      await autoUpdater.setFeedURL(feedURL);
-      await autoUpdater.setScheduledCheckInterval(3600);
-
-      // Some versions of the plugin handle the thread better
-      // if called slightly after startup.
-      Future.delayed(const Duration(seconds: 3), () {
-        autoUpdater.checkForUpdates(inBackground: true);
-        updateChecker = true;
-      });
-    } catch (e) {
-      print("Updater Error: $e");
-    }
-  }
-}
-
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
