@@ -15,20 +15,41 @@ import 'helpers/api_controller.dart';
 import 'helpers/configuration.dart';
 import 'helpers/http_overrides.dart';
 
+bool updateChecker = false;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   if (Platform.isWindows) {
     String feedURL = await Configuration.instance.get("updater");
-    print("xml url : $feedURL");
+
     await autoUpdater.setFeedURL(feedURL);
     await autoUpdater.setScheduledCheckInterval(3600);
     await autoUpdater.checkForUpdates(inBackground: true);
+    updateChecker = true;
   }
 
   HttpOverrides.global = MyHttpOverrides();
   await WindowModes.normal();
   runApp(const MyApp());
+}
+
+Future<void> _initUpdater() async {
+  if (Platform.isWindows) {
+    try {
+      String feedURL = await Configuration.instance.get("updater");
+      await autoUpdater.setFeedURL(feedURL);
+      await autoUpdater.setScheduledCheckInterval(3600);
+
+      // Some versions of the plugin handle the thread better
+      // if called slightly after startup.
+      Future.delayed(const Duration(seconds: 3), () {
+        autoUpdater.checkForUpdates(inBackground: true);
+        updateChecker = true;
+      });
+    } catch (e) {
+      print("Updater Error: $e");
+    }
+  }
 }
 
 class MyApp extends StatefulWidget {
@@ -82,6 +103,17 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
     super.initState();
     _getAppVersion();
     windowManager.addListener(this);
+    _checkUpdate();
+  }
+
+  Future<void> _checkUpdate() async {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (updateChecker == true) {
+        CustomNotification.success("Checking for updates has completed.");
+      } else {
+        CustomNotification.warning("Please reload the app.");
+      }
+    });
   }
 
   void _getAppVersion() async {
