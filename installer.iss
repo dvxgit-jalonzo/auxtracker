@@ -11,29 +11,32 @@ AppUpdatesURL=https://www.diavox.net/
 DefaultDirName={autopf}\AuxTracker
 DefaultGroupName=AuxTracker
 OutputBaseFilename=auxtracker-setup
-Compression=lzma
+UninstallDisplayIcon={app}\auxtrack.exe
+
+; --- BEST COMPRESSION SETTINGS START ---
+Compression=lzma2/ultra64
 SolidCompression=yes
-InfoBeforeFile=infobeforefile.txt
+LZMAUseSeparateProcess=yes
+LZMADictionarySize=65536
+LZMANumFastBytes=273
+; --- BEST COMPRESSION SETTINGS END ---
 
 ; Icon shown in the installer and Start Menu
 SetupIconFile=assets\images\icon.ico
+InfoBeforeFile=infobeforefile.txt
 
 [Files]
 ; Copy the compiled Flutter Windows build
+; Added 'dontcopy' or 'nocompression' is NOT needed here as LZMA2 handles it better.
 Source: "build\windows\x64\runner\Release\*"; \
 DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-; Start Menu shortcut
 Name: "{group}\AuxTracker"; Filename: "{app}\auxtrack.exe"
-
-; Desktop shortcut
 Name: "{commondesktop}\AuxTracker"; Filename: "{app}\auxtrack.exe"; Tasks: desktopicon
 
 [Tasks]
-; Optional checkbox for desktop icon
 Name: "desktopicon"; Description: "Create a desktop icon"; GroupDescription: "Additional icons:";
 
 [Run]
-; Run app after install (optional)
 Filename: "{app}\auxtrack.exe"; Description: "Launch AuxTracker"; Flags: nowait postinstall skipifsilent

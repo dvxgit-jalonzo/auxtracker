@@ -31,36 +31,42 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   TabController? _tabController;
   final recorder = VideoRecorderController();
   final capturer = PeriodicCaptureController();
+
   String? _stateAux;
+  bool _isIdle = false;
 
   Timer? _timer;
   Duration _elapsedTime = Duration.zero;
   String _formattedTime = "00:00:00";
 
-  // StreamSubscription<bool>? _idleSubscription;
-  String? _currentStatus;
+  StreamSubscription<bool>? _idleSubscription;
+  StreamSubscription<IdleServiceConfig>? _configSubscription;
+  bool _hasPersonalBreakRequest = false;
+  DateTime? _startTime;
+
+  late Future<String> _name;
+
   @override
   void initState() {
     super.initState();
     WindowModes.restricted();
     windowManager.addListener(this);
     _loadAuxiliariesFromLocal();
-    IdleService.instance.initialize();
-    // _idleSubscription = IdleService.instance.idleStateStream.listen((isIdle) {
 
-    // });
-
+    _initializeApp();
+    _name = _getUsername();
     WebSocketService().connect();
     WebSocketService().messageStream.listen((message) {
       if (message['event'] == "personalBreakResponse") {
         final data = message['data'];
         final status = data['status'];
-        setState(() {
-          _currentStatus = status;
-        });
+
         if (status == "APPROVED") {
           _createEmployeeLogPersonalBreak();
         }
+        setState(() {
+          _hasPersonalBreakRequest = false;
+        });
       }
 
       if (message['event'] == "logoutEmployeeEvent") {
@@ -69,37 +75,96 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
         _handleLogout();
       }
     });
+  }
 
-    _createEmployeeLogTimeIn();
-    _startScreenCapturing();
-    // _startScreenRecording();
+  Future<String> _getUsername() async {
+    final userInfo = await ApiController.instance.loadUserInfo();
+    return userInfo!['name'];
+  }
+
+  Future<void> _initializeApp() async {
+    try {
+      // 1. First, create time in log (this will disable idle detection)
+      await _createEmployeeLogTimeIn();
+
+      // 2. Then initialize idle service (it will be disabled already)
+      await _initializeServices();
+
+      // 3. Listen to config changes
+      _listenToIdleConfig();
+    } catch (e) {
+      print('Error initializing app: $e');
+    }
+  }
+
+  Future<void> _initializeServices() async {
+    try {
+      // Initialize with disabled state by default
+      await IdleService.instance.initialize(
+        const IdleServiceConfig(enabled: false),
+      );
+      _subscribeToIdleStream();
+      print('✅ IdleService initialized (disabled by default)');
+    } catch (e) {
+      print('Failed to initialize IdleService: $e');
+    }
+  }
+
+  void _subscribeToIdleStream() {
+    print('🔔 Subscribing to idle stream');
+
+    _idleSubscription?.cancel();
+
+    _idleSubscription = IdleService.instance.idleStateStream.listen(
+      (isIdle) {
+        print('🔔 Idle state changed in UI: $isIdle');
+        if (mounted) {
+          setState(() {
+            _isIdle = isIdle;
+          });
+        }
+      },
+      onError: (error) {
+        print('❌ Idle stream error: $error');
+      },
+      cancelOnError: false,
+    );
+  }
+
+  void _listenToIdleConfig() {
+    _configSubscription = IdleService.instance.configStream.listen((config) {
+      print(
+        '🔔 Config changed - enabled: ${config.enabled}, initialized: ${IdleService.instance.isInitialized}',
+      );
+
+      if (config.enabled && IdleService.instance.isInitialized) {
+        Future.delayed(Duration(milliseconds: 100), () {
+          _subscribeToIdleStream();
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
+    _idleSubscription?.cancel();
+    _configSubscription?.cancel();
     windowManager.removeListener(this);
-    // _idleSubscription?.cancel();
     _tabController?.dispose();
     WebSocketService().disconnect();
-    // _stopScreenRecording();
     capturer.stopCapturing();
     _timer?.cancel();
     IdleService.instance.dispose();
     super.dispose();
   }
 
-  void _dismissStatus() {
-    setState(() {
-      _currentStatus = null; // Setting to null hides the widget
-    });
-  }
-
   void _startTimer([Duration elapsedTime = Duration.zero]) {
     _timer?.cancel();
     _elapsedTime = elapsedTime;
+    _startTime = DateTime.now().subtract(elapsedTime);
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
-        _elapsedTime = Duration(seconds: _elapsedTime.inSeconds + 1);
+        _elapsedTime = DateTime.now().difference(_startTime!);
         _formattedTime = _formatDuration(_elapsedTime);
       });
     });
@@ -121,16 +186,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     return "$hours:$minutes:$seconds";
   }
 
-  Future<void> _startScreenCapturing() async {
-    final userInfo = await ApiController.instance.loadUserInfo();
-    if (userInfo == null) {
-      throw Exception("User info not found.");
-    }
-    if (userInfo['enable_screen_capture'] == 1) {
-      capturer.startCapturing();
-    }
-  }
-
   void _createEmployeeLogPersonalBreak() async {
     final sub = "Personal Break";
     final response = await ApiController.instance.createEmployeeLog(sub);
@@ -139,17 +194,17 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
         _stateAux = sub;
       });
       _startTimer();
-      CustomNotification.info(context, response['message']);
+      CustomNotification.info(response['message']);
     } else if (response['code'] == 409) {
       setState(() {
         _stateAux = sub;
       });
       _startTimer(Duration(seconds: response['elapsedTime']));
-      CustomNotification.warning(context, response['message']);
+      CustomNotification.warning(response['message']);
     }
   }
 
-  void _createEmployeeLogTimeIn() async {
+  Future<void> _createEmployeeLogTimeIn() async {
     final sub = "Time In";
     final response = await ApiController.instance.createEmployeeLog(sub);
     if (response['code'] == 200) {
@@ -159,13 +214,9 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
         _stateAux = sub;
       });
       _startTimer();
-      CustomNotification.info(context, response['message']);
+      CustomNotification.info(response['message']);
     } else if (response['code'] == 409) {
-      setState(() {
-        _stateAux = sub;
-      });
-      _startTimer(Duration(seconds: response['elapsedTime']));
-      CustomNotification.warning(context, response['message']);
+      await settingLastLog();
     }
   }
 
@@ -232,7 +283,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
         throw Exception('change aux User info not found. Please login first.');
       }
       await ApiController.instance.createEmployeeLog("OFF");
-      capturer.stopCapturing();
       await ApiController.instance.logout();
       await WindowModes.normal();
       if (mounted) {
@@ -243,12 +293,8 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Logout error: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        CustomNotification.error("Logout Error");
+        await ApiController.instance.forceLogout();
       }
     }
   }
@@ -429,8 +475,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     if (result == true) {
       if (mounted) {
         _handleLogout();
-        final message = "Aux set to OFF";
-        CustomNotification.info(context, message);
       }
     }
   }
@@ -606,27 +650,23 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
           if (mounted) {
             if (success) {
               final message = "Request Sent";
-              CustomNotification.info(context, message);
+              setState(() {
+                _hasPersonalBreakRequest = true;
+              });
+              CustomNotification.info(message);
             } else {
-              CustomNotification.error(
-                context,
-                "Failed to request Personal Break",
-              );
+              CustomNotification.error("Failed to request Personal Break");
             }
           }
         } catch (e) {
           if (mounted) {
-            CustomNotification.error(
-              context,
-              "Failed to request Personal Break",
-            );
+            CustomNotification.error("Failed to request Personal Break");
           }
         }
-      } else {
-        setState(() {
-          _selectedAux = null;
-        });
       }
+      setState(() {
+        _selectedAux = null;
+      });
       return; // Exit early for Personal Break
     }
     if (_selectedAux!['main'] == "OT" ||
@@ -820,26 +860,26 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                 _stateAux = _selectedAux!['sub'];
               });
               _startTimer();
-              CustomNotification.info(context, response['message']);
+              CustomNotification.info(response['message']);
             } else if (response['code'] == 409) {
               setState(() {
                 _stateAux = _selectedAux!['sub'];
               });
               _startTimer(Duration(seconds: response['elapsedTime']));
-              CustomNotification.warning(context, response['message']);
+              CustomNotification.warning(response['message']);
             }
           } else {
             if (mounted) {
-              CustomNotification.error(context, "Failed to request OT");
+              CustomNotification.error("Failed to request OT");
             }
           }
         } catch (e) {
           if (mounted) {
-            CustomNotification.error(context, "Failed to request OT");
+            CustomNotification.error("Failed to request OT");
           }
         }
       } else if (confirmResult == "false") {
-        CustomNotification.error(context, "Credentials incorrect.");
+        CustomNotification.error("Credentials incorrect.");
         setState(() {
           _selectedAux = null;
         });
@@ -850,190 +890,43 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       }
       return; // Exit early for Personal Break
     }
-    // For other selections, show the regular confirmation dialog
-    final result = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.all(24),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(18),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.2),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.25),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                width: 300,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Icon container
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
-                      ),
 
-                      child: Icon(
-                        _getCategoryIcon(_selectedAux!['main']),
-                        color: Colors.white,
-                        size: 34,
-                      ),
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    // Title
-                    const Text(
-                      'Confirm Selection',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-
-                    const SizedBox(height: 14),
-
-                    // Selected item card
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 12,
-                        horizontal: 14,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.06),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.18),
-                        ),
-                      ),
-                      child: Text(
-                        _selectedAux!['sub'] ?? '',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 22),
-
-                    Row(
-                      children: [
-                        // Cancel
-                        Expanded(
-                          child: TextButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                            },
-                            style: TextButton.styleFrom(
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                side: BorderSide(
-                                  color: Colors.white.withValues(alpha: 0.4),
-                                ),
-                              ),
-                            ),
-                            child: const Text(
-                              'Cancel',
-                              style: TextStyle(fontSize: 13),
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(width: 12),
-
-                        // Confirm
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () => Navigator.pop(context, true),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue.shade800,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              elevation: 6,
-                            ),
-                            child: const Text(
-                              'Confirm',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-
-    if (result == true) {
-      if (mounted) {
-        if (_selectedAux!['sub'] == "OFF") {
-          _handleLogout();
-        } else {
-          final userInfo = await ApiController.instance.loadUserInfo();
-          if (userInfo == null || userInfo['id'] == null) {
-            throw Exception(
-              'change aux User info not found. Please login first.',
-            );
-          }
-          final response = await ApiController.instance.createEmployeeLog(
-            _selectedAux!['sub'],
+    if (mounted) {
+      if (_selectedAux!['sub'] == "OFF") {
+        _handleLogout();
+      } else {
+        final userInfo = await ApiController.instance.loadUserInfo();
+        if (userInfo == null || userInfo['id'] == null) {
+          throw Exception(
+            'change aux User info not found. Please login first.',
           );
-          setState(() {
-            _stateAux = _selectedAux!['sub'];
-          });
-          if (response['code'] == 200) {
-            _startTimer();
-            CustomNotification.info(context, response['message']);
-          } else if (response['code'] == 409) {
-            _startTimer(Duration(seconds: response['elapsedTime']));
-            CustomNotification.warning(context, response['message']);
-          }
+        }
+        final response = await ApiController.instance.createEmployeeLog(
+          _selectedAux!['sub'],
+        );
+        setState(() {
+          _stateAux = _selectedAux!['sub'];
+        });
+        if (response['code'] == 200) {
+          _startTimer();
+          CustomNotification.info(response['message']);
+        } else if (response['code'] == 409) {
+          _startTimer(Duration(seconds: response['elapsedTime']));
+          CustomNotification.warning(response['message']);
         }
       }
-    } else {
-      setState(() {
-        _selectedAux = null;
-      });
     }
+  }
+
+  Future<void> settingLastLog() async {
+    await Future.delayed(Duration(seconds: 3));
+    final response = await ApiController.instance.getLatestEmployeeLog();
+    final lastLog = response['aux_sub'];
+    CustomNotification.info("Setting aux to $lastLog");
+    setState(() {
+      _stateAux = response['aux_sub'];
+    });
+    _startTimer(Duration(seconds: response['elapsedTime']));
   }
 
   @override
@@ -1057,6 +950,30 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      FutureBuilder<String>(
+                        future: _name,
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          }
+
+                          // 3. Return the UI after the data is "ready"
+                          return Center(
+                            child: Text(
+                              snapshot.data?.toUpperCase() ?? "Unknow",
+                              style: TextStyle(
+                                color: Colors.yellow,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 10,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      SizedBox(height: 8),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -1095,16 +1012,27 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                 children: [
                                   const SizedBox(width: 6), // 8 → 6
                                   Flexible(
-                                    child: Text(
-                                      _stateAux ?? "NOT LOGGED",
-                                      style: TextStyle(
-                                        color: Colors.blue.shade500,
-                                        fontSize: 12, // 14 → 12
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 0.8, // 1.0 → 0.8
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
+                                    child: _isIdle
+                                        ? Text(
+                                            "Inactive",
+                                            style: TextStyle(
+                                              color: Colors.lightGreenAccent,
+                                              fontSize: 12, // 14 → 12
+                                              fontWeight: FontWeight.w600,
+                                              letterSpacing: 0.8, // 1.0 → 0.8
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          )
+                                        : Text(
+                                            _stateAux ?? "NOT LOGGED",
+                                            style: TextStyle(
+                                              color: Colors.lightGreenAccent,
+                                              fontSize: 12, // 14 → 12
+                                              fontWeight: FontWeight.w600,
+                                              letterSpacing: 0.8, // 1.0 → 0.8
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
                                   ),
                                   const SizedBox(width: 5), // 15 → 10
 
@@ -1152,6 +1080,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                               ),
                             ),
                           ),
+
                           SizedBox(width: 7),
                           InkWell(
                             borderRadius: BorderRadius.circular(40),
@@ -1312,7 +1241,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                         ),
 
                       const SizedBox(height: 8),
-
                       Expanded(
                         child: _tabController == null
                             ? Center(
@@ -1348,94 +1276,66 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                   ),
                 ),
 
-                // --- NEW: Status Indicator Overlay ---
-                if (_currentStatus != null)
+                if (_hasPersonalBreakRequest) ...[
                   Positioned(
-                    top: 20,
-                    left: 8, // Add padding from edges
-                    right: 8,
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        // Determine size based on available width
-                        final isNarrow = constraints.maxWidth < 300;
-                        final isVeryNarrow = constraints.maxWidth < 200;
+                    bottom: 10,
+                    left: 12,
+                    right: 12,
+                    child: Material(
+                      elevation: 6,
+                      borderRadius: BorderRadius.circular(14),
+                      color: Colors.blueGrey.shade900,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.timelapse_rounded,
+                              color: Colors.white70,
+                              size: 20,
+                            ),
 
-                        return Center(
-                          child: GestureDetector(
-                            onTap: _dismissStatus,
-                            child: Container(
-                              constraints: BoxConstraints(
-                                maxWidth:
-                                    constraints.maxWidth -
-                                    16, // Prevent overflow
-                              ),
-                              padding: EdgeInsets.symmetric(
-                                horizontal: isVeryNarrow
-                                    ? 8
-                                    : (isNarrow ? 12 : 16),
-                                vertical: isVeryNarrow
-                                    ? 6
-                                    : (isNarrow ? 8 : 10),
-                              ),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Colors.deepPurple.shade500,
-                                    Colors.blue.shade900,
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
+                            const SizedBox(width: 12),
+
+                            const Expanded(
+                              child: Text(
+                                "Break request in progress",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
                                 ),
-                                borderRadius: BorderRadius.circular(10),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.4),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  // Hide icon on very narrow screens
-                                  if (!isVeryNarrow) ...[
-                                    Icon(
-                                      Icons.notifications_active_rounded,
-                                      color: Colors.white,
-                                      size: isNarrow ? 16 : 18,
-                                    ),
-                                    SizedBox(width: isNarrow ? 6 : 8),
-                                  ],
-                                  // Flexible text that wraps or truncates
-                                  Flexible(
-                                    child: Text(
-                                      'Personal Brake has been $_currentStatus',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: isVeryNarrow
-                                            ? 11
-                                            : (isNarrow ? 12 : 13),
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: isVeryNarrow ? 1 : 2,
-                                    ),
-                                  ),
-                                  SizedBox(width: isNarrow ? 6 : 10),
-                                  Icon(
-                                    Icons.close,
-                                    color: Colors.white.withValues(alpha: 0.7),
-                                    size: isNarrow ? 14 : 16,
-                                  ),
-                                ],
                               ),
                             ),
-                          ),
-                        );
-                      },
+
+                            TextButton(
+                              onPressed: () async {
+                                final status = await ApiController.instance
+                                    .deletePersonalBreak();
+                                if (status) {
+                                  setState(() {
+                                    _hasPersonalBreakRequest = false;
+                                  });
+                                }
+                              },
+                              child: const Text(
+                                "CANCEL",
+                                style: TextStyle(
+                                  color: Colors.redAccent,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
+                ],
               ],
             ),
           ),

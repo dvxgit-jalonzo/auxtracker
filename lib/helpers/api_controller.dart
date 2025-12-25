@@ -1,8 +1,17 @@
 import 'dart:convert';
 
+import 'package:auxtrack/app_navigator.dart';
+import 'package:auxtrack/enums/employee_log_error.dart';
 import 'package:auxtrack/helpers/configuration.dart';
+import 'package:auxtrack/helpers/custom_notification.dart';
+import 'package:auxtrack/helpers/periodic_capture_controller.dart';
+import 'package:auxtrack/helpers/window_modes.dart';
+import 'package:auxtrack/main.dart';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'idle_service.dart';
 
 class ApiController {
   // Singleton pattern
@@ -10,6 +19,13 @@ class ApiController {
   static final ApiController instance = ApiController._privateConstructor();
 
   String? _accessToken;
+
+  void _displayHostInfo(Uri base) {
+    print(base.toString());
+    print(base.scheme);
+    print(base.host);
+    print(base.hasPort ? base.port : null);
+  }
 
   /// Load token from SharedPreferences
   Future<void> _loadToken() async {
@@ -48,6 +64,7 @@ class ApiController {
     } catch (e) {
       final message = e.toString();
       print(message);
+      await forceLogout();
       rethrow;
     }
   }
@@ -69,13 +86,10 @@ class ApiController {
 
       final base = Uri.parse(baseUrl);
 
-      final protocol = base.scheme; // http or https
-      final host = base.host; // domain or IP
+      final protocol = base.scheme;
+      final host = base.host;
       final port = base.hasPort ? base.port : null;
-      print(base);
-      print(protocol);
-      print(host);
-      print(port);
+      _displayHostInfo(base);
 
       final params = {
         "employee_id": employeeId.toString(),
@@ -106,6 +120,8 @@ class ApiController {
       }
     } catch (e) {
       print("Error getting auxiliaries: $e");
+      CustomNotification.error("Error getting auxiliaries");
+      await forceLogout();
     }
   }
 
@@ -174,11 +190,11 @@ class ApiController {
     try {
       final baseUrl = await Configuration.instance.get("baseUrl");
       final userInfo = await loadUserInfo();
+
       if (userInfo == null || userInfo['id'] == null) {
-        throw Exception(
-          'create employee log User info not found. Please login first.',
-        );
+        throw Exception('User info not found. Please login first.');
       }
+
       final headers = await _headers();
       final employeeId = userInfo['id'];
       final url = Uri.parse('$baseUrl/create-employee-log');
@@ -189,9 +205,173 @@ class ApiController {
         body: jsonEncode({"employee_id": employeeId, "sub": sub}),
       );
 
+      final result = jsonDecode(response.body);
+      final error = EmployeeLogError.fromCode(result['error_code'] as String?);
+
+      // =========================
+      // ✅ SUCCESS FLOW
+      // =========================
+      if (error == EmployeeLogError.success) {
+        final enabledStates = ["On Shift", "Calling", "SMS", "Lunch OT"];
+
+        final capturer = PeriodicCaptureController();
+
+        if (enabledStates.contains(sub)) {
+          print('✅ Enabling idle detection for: $sub');
+          await IdleService.instance.updateConfig(
+            IdleService.instance.config.copyWith(enabled: true),
+          );
+        } else {
+          print('❌ Disabling idle detection for: $sub');
+          await IdleService.instance.updateConfig(
+            IdleService.instance.config.copyWith(enabled: false),
+          );
+        }
+
+        if (userInfo['enable_screen_capture'] == 1) {
+          capturer.startCapturing();
+        }
+
+        return result;
+      }
+
+      // =========================
+      // ❌ ERROR FLOW (ENUM-DRIVEN)
+      // =========================
+      switch (error) {
+        case EmployeeLogError.alreadyTimedIn:
+        case EmployeeLogError.alreadyTimedOut:
+        case EmployeeLogError.noTimeIn:
+        case EmployeeLogError.duplicateAux:
+          CustomNotification.warning(result['message']);
+          break;
+
+        case EmployeeLogError.noActiveSchedule:
+        case EmployeeLogError.employeeNotFound:
+          CustomNotification.error(result['message']);
+          break;
+
+        case EmployeeLogError.serverError:
+          CustomNotification.error('Server error. Please try again.');
+          break;
+
+        default:
+          CustomNotification.error(
+            result['message'] ?? 'Something went wrong.',
+          );
+      }
+
+      return result;
+    } catch (e) {
+      CustomNotification.error("Error creating employee log");
+      await forceLogout();
+      rethrow;
+    }
+  }
+
+  Future<void> forceLogout() async {
+    await Future.delayed(const Duration(seconds: 3));
+    CustomNotification.error("Token Expired!");
+    await Future.delayed(const Duration(seconds: 3));
+    await ApiController.instance.logout();
+    await WindowModes.normal();
+    navigatorKey.currentState?.pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginPage()),
+      (_) => false,
+    );
+  }
+
+  Future<dynamic> getLatestEmployeeLog() async {
+    // get-employee-last-aux
+    try {
+      final baseUrl = await Configuration.instance.get("baseUrl");
+      final userInfo = await loadUserInfo();
+
+      if (userInfo == null || userInfo['id'] == null) {
+        throw Exception(
+          'getLatestEmployeeLog: User info not found. Please login first.',
+        );
+      }
+
+      final headers = await _headers();
+      final employeeId = userInfo['id'];
+      final siteId = userInfo['site_id'];
+
+      final base = Uri.parse(baseUrl);
+
+      final protocol = base.scheme;
+      final host = base.host;
+      final port = base.hasPort ? base.port : null;
+      _displayHostInfo(base);
+
+      final params = {
+        "employee_id": employeeId.toString(),
+        "site_id": siteId.toString(),
+      };
+
+      // Build the GET URL
+      Uri url = protocol == "https"
+          ? Uri.https(host, '/api/get-employee-last-aux', params)
+          : Uri.http(host, '/api/get-employee-last-aux', params);
+
+      if (port != null) {
+        url = url.replace(port: port);
+      }
+
+      // Send GET request
+      final response = await http.get(url, headers: headers);
+      //
       return jsonDecode(response.body);
     } catch (e) {
-      print('Error creating employee log: $e');
+      CustomNotification.error("Error getting last aux");
+    }
+  }
+
+  Future<bool> deletePersonalBreak() async {
+    try {
+      final baseUrl = await Configuration.instance.get("baseUrl");
+      final headers = await _headers();
+      final userInfo = await loadUserInfo();
+
+      if (userInfo == null || userInfo['id'] == null) {
+        print('User info not found.');
+        return false;
+      }
+
+      final employeeId = userInfo['id'];
+      final siteId = userInfo['site_id'];
+      final url = Uri.parse('$baseUrl/delete-personal-break');
+
+      Map<String, dynamic> params = {
+        "site_id": siteId,
+        "employee_id": employeeId,
+      };
+
+      final response = await http.post(
+        url,
+        headers: headers,
+        body: jsonEncode(params),
+      );
+
+      if (response.statusCode == 200) {
+        // I-decode ang response (true/false na galing sa Laravel)
+        final bool isDeleted = jsonDecode(response.body);
+
+        if (isDeleted) {
+          print('Personal break record actually removed from DB.');
+          return true;
+        } else {
+          print('No pending break found to delete.');
+          return false;
+        }
+      } else {
+        print('Server Error: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      CustomNotification.error("Error deleting personal break");
+      await forceLogout();
+      return false;
     }
   }
 
@@ -200,17 +380,16 @@ class ApiController {
       final baseUrl = await Configuration.instance.get("baseUrl");
       final headers = await _headers();
       final userInfo = await loadUserInfo();
+
       if (userInfo == null || userInfo['id'] == null) {
-        throw Exception(
-          'create personal break User info not found. Please login first.',
-        );
+        print('Error: User info not found.');
+        return false;
       }
+
       final employeeId = userInfo['id'];
-      final siteId = userInfo['site_id'];
       final url = Uri.parse('$baseUrl/create-personal-break');
 
       Map<String, dynamic> params = {
-        "site_id": siteId,
         "employee_id": employeeId,
         "reason": reason,
       };
@@ -221,15 +400,23 @@ class ApiController {
         body: jsonEncode(params),
       );
 
-      if (response.statusCode != 200) {
-        print(
-          'Failed to create personal break. Status: ${response.statusCode}, Body: ${response.body}',
-        );
+      if (response.statusCode == 200) {
+        final bool isCreated = jsonDecode(response.body);
+
+        if (isCreated) {
+          print('Personal break created successfully.');
+          return true;
+        } else {
+          print('Request denied: Employee might already have a pending break.');
+          return false;
+        }
+      } else {
+        print('Failed to connect. Status: ${response.statusCode}');
+        return false;
       }
-      print('Personal break created successfully.');
-      return true;
     } catch (e) {
-      print('Error creating personal break: $e');
+      CustomNotification.error("Error creating personal break");
+      await forceLogout();
       return false;
     }
   }
@@ -271,6 +458,7 @@ class ApiController {
       }
     } catch (e) {
       print('Error updating employee idle: $e');
+      await forceLogout();
     }
   }
 
@@ -342,6 +530,6 @@ class ApiController {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
     _accessToken = null;
-    print('Logged out.');
+    print('Clearing cache.');
   }
 }
