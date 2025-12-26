@@ -13,14 +13,6 @@ DefaultGroupName=AuxTracker
 OutputBaseFilename=auxtracker-setup
 UninstallDisplayIcon={app}\auxtrack.exe
 
-; --- BEST COMPRESSION SETTINGS START ---
-Compression=lzma2/ultra64
-SolidCompression=yes
-LZMAUseSeparateProcess=yes
-LZMADictionarySize=65536
-LZMANumFastBytes=273
-; --- BEST COMPRESSION SETTINGS END ---
-
 ; Icon shown in the installer and Start Menu
 SetupIconFile=assets\images\icon.ico
 InfoBeforeFile=infobeforefile.txt
