@@ -15,7 +15,7 @@ import 'helpers/api_controller.dart';
 import 'helpers/configuration.dart';
 import 'helpers/http_overrides.dart';
 
-bool updateChecker = false;
+// bool updateChecker = false;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -25,7 +25,7 @@ void main() async {
     await autoUpdater.setFeedURL(feedURL);
     await autoUpdater.setScheduledCheckInterval(3600);
     await autoUpdater.checkForUpdates(inBackground: true);
-    updateChecker = true;
+    // updateChecker = true;
   }
 
   HttpOverrides.global = MyHttpOverrides();
@@ -70,10 +70,10 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> with WindowListener {
   final _formKey = GlobalKey<FormState>();
-  // final _usernameController = TextEditingController();
-  // final _passwordController = TextEditingController();
-  final _usernameController = TextEditingController(text: "jessa");
-  final _passwordController = TextEditingController(text: "jhundeveloper");
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+  // final _usernameController = TextEditingController(text: "jessa");
+  // final _passwordController = TextEditingController(text: "jhundeveloper");
   bool _isPasswordVisible = false;
   bool _isLoading = false;
   String _version = "";
@@ -84,18 +84,18 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
     super.initState();
     _getAppVersion();
     windowManager.addListener(this);
-    _checkUpdate();
+    // _checkUpdate();
   }
 
-  Future<void> _checkUpdate() async {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (updateChecker == true) {
-        CustomNotification.success("Checking for updates has completed.");
-      } else {
-        CustomNotification.warning("Please reload the app.");
-      }
-    });
-  }
+  // Future<void> _checkUpdate() async {
+  //   WidgetsBinding.instance.addPostFrameCallback((_) {
+  //     if (updateChecker == true) {
+  //       CustomNotification.success("Checking for updates has completed.");
+  //     } else {
+  //       CustomNotification.warning("Please reload the app.");
+  //     }
+  //   });
+  // }
 
   void _getAppVersion() async {
     PackageInfo packageInfo = await PackageInfo.fromPlatform();

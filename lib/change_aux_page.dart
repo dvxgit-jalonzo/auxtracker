@@ -197,11 +197,22 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     final sub = "Time In";
     final response = await ApiController.instance.createEmployeeLog(sub);
 
+    if (response['code'] == "NO_ACTIVE_SCHEDULE") {
+      CustomNotification.warning(response['message']);
+      await Future.delayed(Duration(seconds: 3));
+      await ApiController.instance.forceLogout();
+      return;
+    }
+
     if (response['code'] == "ALREADY_TIMED_IN" ||
         response['code'] == "DUPLICATE_AUX") {
       await settingLastLog();
+      return;
     } else {
       _startTimer();
+      setState(() {
+        _stateAux = sub;
+      });
       CustomNotification.info(response['message']);
     }
   }
@@ -268,7 +279,8 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       if (userInfo == null || userInfo['id'] == null) {
         throw Exception('change aux User info not found. Please login first.');
       }
-      await ApiController.instance.createEmployeeLog("OFF");
+      final result = await ApiController.instance.createEmployeeLog("OFF");
+      CustomNotification.info(result['message']);
       await ApiController.instance.logout();
       await WindowModes.normal();
       if (mounted) {
@@ -282,20 +294,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
         CustomNotification.error("Logout Error");
         await ApiController.instance.forceLogout();
       }
-    }
-  }
-
-  Auxiliary? findAuxiliaryBySub(String sub) {
-    try {
-      // Flatten all categories and search
-      return _auxiliariesByCategory.values
-          .expand((list) => list) // Flatten the lists
-          .firstWhere(
-            (aux) => aux.sub == sub,
-            orElse: () => throw Exception('Not found'),
-          );
-    } catch (e) {
-      return null;
     }
   }
 
@@ -844,6 +842,11 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
               _stateAux = _selectedAux!['sub'];
             });
             CustomNotification.info(response['message']);
+            if (response['code'] == "NO_ACTIVE_SCHEDULE") {
+              await ApiController.instance.forceLogout();
+              return;
+            }
+
             if (response['code'] != "DUPLICATE_AUX") _startTimer();
           } else {
             if (mounted) {
@@ -886,6 +889,10 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
         _stateAux = _selectedAux!['sub'];
       });
       CustomNotification.info(response['message']);
+      if (response['code'] == "NO_ACTIVE_SCHEDULE") {
+        await ApiController.instance.forceLogout();
+        return;
+      }
       if (response['code'] != "DUPLICATE_AUX") {
         _startTimer();
       }

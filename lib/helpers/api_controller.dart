@@ -188,7 +188,7 @@ class ApiController {
         body: jsonEncode({"employee_id": employeeId, "sub": sub}),
       );
       final result = jsonDecode(response.body);
-      print(result);
+      print("CreateEmployeeLogResult : $result");
       final enabledStates = ["On Shift", "Calling", "SMS", "Lunch OT"];
 
       if (enabledStates.contains(sub)) {
