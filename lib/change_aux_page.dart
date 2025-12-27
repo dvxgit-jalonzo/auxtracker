@@ -77,7 +77,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
 
       if (message['event'] == "logoutEmployeeEvent") {
         final data = message['data'];
-        final employeeId = data['employee_id'];
         _handleLogout();
       }
     });
@@ -99,7 +98,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       // 3. Listen to config changes
       _listenToIdleConfig();
     } catch (e) {
-      print('Error initializing app: $e');
+      CustomNotification.error(e.toString());
     }
   }
 
@@ -176,14 +175,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     });
   }
 
-  void _stopTimer() {
-    _timer?.cancel();
-    setState(() {
-      _elapsedTime = Duration.zero;
-      _formattedTime = "00:00:00";
-    });
-  }
-
   String _formatDuration(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
     String hours = twoDigits(duration.inHours);
@@ -195,34 +186,23 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   void _createEmployeeLogPersonalBreak() async {
     final sub = "Personal Break";
     final response = await ApiController.instance.createEmployeeLog(sub);
-    if (response['code'] == 200) {
-      setState(() {
-        _stateAux = sub;
-      });
-      _startTimer();
-      CustomNotification.info(response['message']);
-    } else if (response['code'] == 409) {
-      setState(() {
-        _stateAux = sub;
-      });
-      _startTimer(Duration(seconds: response['elapsedTime']));
-      CustomNotification.warning(response['message']);
-    }
+    setState(() {
+      _stateAux = sub;
+    });
+    CustomNotification.info(response['message']);
+    if (response['code'] != "DUPLICATE_AUX") _startTimer();
   }
 
   Future<void> _createEmployeeLogTimeIn() async {
     final sub = "Time In";
     final response = await ApiController.instance.createEmployeeLog(sub);
-    if (response['code'] == 200) {
-      // Auxiliary? result = findAuxiliaryBySub(sub);
-      // print(result?.sub);
-      setState(() {
-        _stateAux = sub;
-      });
+
+    if (response['code'] == "ALREADY_TIMED_IN" ||
+        response['code'] == "DUPLICATE_AUX") {
+      await settingLastLog();
+    } else {
       _startTimer();
       CustomNotification.info(response['message']);
-    } else if (response['code'] == 409) {
-      await settingLastLog();
     }
   }
 
@@ -860,20 +840,11 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
             final response = await ApiController.instance.createEmployeeLog(
               _selectedAux!['sub'],
             );
-
-            if (response['code'] == 200) {
-              setState(() {
-                _stateAux = _selectedAux!['sub'];
-              });
-              _startTimer();
-              CustomNotification.info(response['message']);
-            } else if (response['code'] == 409) {
-              setState(() {
-                _stateAux = _selectedAux!['sub'];
-              });
-              _startTimer(Duration(seconds: response['elapsedTime']));
-              CustomNotification.warning(response['message']);
-            }
+            setState(() {
+              _stateAux = _selectedAux!['sub'];
+            });
+            CustomNotification.info(response['message']);
+            if (response['code'] != "DUPLICATE_AUX") _startTimer();
           } else {
             if (mounted) {
               CustomNotification.error("Failed to request OT");
@@ -897,29 +868,26 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       return; // Exit early for Personal Break
     }
 
+    if (_selectedAux!['sub'] == "OFF") {
+      _handleLogout();
+      return;
+    }
+
     if (mounted) {
-      if (_selectedAux!['sub'] == "OFF") {
-        _handleLogout();
-      } else {
-        final userInfo = await ApiController.instance.loadUserInfo();
-        if (userInfo == null || userInfo['id'] == null) {
-          throw Exception(
-            'change aux User info not found. Please login first.',
-          );
-        }
-        final response = await ApiController.instance.createEmployeeLog(
-          _selectedAux!['sub'],
-        );
-        setState(() {
-          _stateAux = _selectedAux!['sub'];
-        });
-        if (response['code'] == 200) {
-          _startTimer();
-          CustomNotification.info(response['message']);
-        } else if (response['code'] == 409) {
-          _startTimer(Duration(seconds: response['elapsedTime']));
-          CustomNotification.warning(response['message']);
-        }
+      final userInfo = await ApiController.instance.loadUserInfo();
+      if (userInfo == null || userInfo['id'] == null) {
+        throw Exception('change aux User info not found. Please login first.');
+      }
+      final response = await ApiController.instance.createEmployeeLog(
+        _selectedAux!['sub'],
+      );
+      print(response);
+      setState(() {
+        _stateAux = _selectedAux!['sub'];
+      });
+      CustomNotification.info(response['message']);
+      if (response['code'] != "DUPLICATE_AUX") {
+        _startTimer();
       }
     }
   }

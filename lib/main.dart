@@ -70,10 +70,10 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> with WindowListener {
   final _formKey = GlobalKey<FormState>();
-  final _usernameController = TextEditingController();
-  final _passwordController = TextEditingController();
-  // final _usernameController = TextEditingController(text: "admin");
-  // final _passwordController = TextEditingController(text: "admin123");
+  // final _usernameController = TextEditingController();
+  // final _passwordController = TextEditingController();
+  final _usernameController = TextEditingController(text: "jessa");
+  final _passwordController = TextEditingController(text: "jhundeveloper");
   bool _isPasswordVisible = false;
   bool _isLoading = false;
   String _version = "";
@@ -121,47 +121,29 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
         final username = _usernameController.text;
         final password = _passwordController.text;
 
-        final success = await ApiController.instance.login(username, password);
+        await ApiController.instance.login(username, password);
         setState(() => _isLoading = false);
 
-        if (success) {
-          if (mounted) {
-            final prefs = await SharedPreferences.getInstance();
+        if (mounted) {
+          final prefs = await SharedPreferences.getInstance();
 
-            final accessToken = prefs.getString("accessToken");
-            if (accessToken != null && accessToken.isNotEmpty) {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const ChangeAuxPage()),
-              );
-            } else {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginPage()),
-              );
-            }
-          }
-        } else {
-          if (mounted) {
-            CustomNotification.error("Invalid username or password");
-            await Future.delayed(Duration(seconds: 4));
-            CustomNotification.error(
-              "The user must have site.",
-              title: "Site Error",
+          final accessToken = prefs.getString("accessToken");
+          if (accessToken != null && accessToken.isNotEmpty) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const ChangeAuxPage()),
+            );
+          } else {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const LoginPage()),
             );
           }
         }
       } catch (e) {
         setState(() => _isLoading = false);
-
         if (mounted) {
-          print(e.toString());
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Connection error: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          CustomNotification.error(e.toString());
         }
       }
     }
@@ -241,7 +223,12 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
                               width: 2,
                             ),
                           ),
+                          errorStyle: const TextStyle(
+                            color: Colors.yellow,
+                            // fontWeight: FontWeight.bold, etc.
+                          ),
                         ),
+
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter your username';
@@ -295,13 +282,11 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
                               width: 2,
                             ),
                           ),
+                          errorStyle: const TextStyle(color: Colors.yellow),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter your password';
-                          }
-                          if (value.length < 6) {
-                            return 'Password must be at least 6 characters';
                           }
                           return null;
                         },

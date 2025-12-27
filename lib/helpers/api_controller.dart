@@ -1,17 +1,15 @@
 import 'dart:convert';
 
 import 'package:auxtrack/app_navigator.dart';
-import 'package:auxtrack/enums/employee_log_error.dart';
 import 'package:auxtrack/helpers/configuration.dart';
 import 'package:auxtrack/helpers/custom_notification.dart';
+import 'package:auxtrack/helpers/idle_service.dart';
 import 'package:auxtrack/helpers/periodic_capture_controller.dart';
 import 'package:auxtrack/helpers/window_modes.dart';
 import 'package:auxtrack/main.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-
-import 'idle_service.dart';
 
 class ApiController {
   // Singleton pattern
@@ -42,29 +40,23 @@ class ApiController {
   }
 
   Future<void> getReverbAppKey() async {
-    try {
-      final host = await Configuration.instance.get("baseUrl");
-      final headers = await _headers();
+    final host = await Configuration.instance.get("baseUrl");
+    final headers = await _headers();
+    final url = Uri.parse("$host/get-reverb-key");
 
-      final url = Uri.parse("$host/get-reverb-key");
+    try {
       final response = await http.get(url, headers: headers);
+
+      // Check if the content is actually JSON
+      final status = jsonDecode(response.body);
+
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('reverbAppKey', jsonEncode(data));
-        print(
-          'Reverb App Key fetched and saved to local storage successfully.',
-        );
+        await prefs.setString('reverbAppKey', status['key']);
       } else {
-        print(
-          'Failed to fetch Reverb: ${response.statusCode} - ${response.body}',
-        );
-        throw Exception('Failed to fetch Reverb');
+        throw Exception(status['message']);
       }
     } catch (e) {
-      final message = e.toString();
-      print(message);
-      await forceLogout();
       rethrow;
     }
   }
@@ -74,10 +66,8 @@ class ApiController {
       final baseUrl = await Configuration.instance.get("baseUrl");
       final userInfo = await loadUserInfo();
 
-      if (userInfo == null || userInfo['id'] == null) {
-        throw Exception(
-          'getAuxiliaries: User info not found. Please login first.',
-        );
+      if (userInfo == null) {
+        throw Exception('User info not found.');
       }
 
       final headers = await _headers();
@@ -107,26 +97,22 @@ class ApiController {
 
       // Send GET request
       final response = await http.get(url, headers: headers);
-
+      final status = jsonDecode(response.body);
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('auxiliaries', jsonEncode(data));
-
-        print("Auxiliaries saved!");
       } else {
-        print("Error getting auxiliaries: ${response.statusCode}");
+        throw Exception(status['message']);
       }
     } catch (e) {
-      print("Error getting auxiliaries: $e");
-      CustomNotification.error("Error getting auxiliaries");
-      await forceLogout();
+      rethrow;
     }
   }
 
   /// Login using username and password
-  Future login(String username, String password) async {
+  Future<void> login(String username, String password) async {
     try {
       final baseUrl = await Configuration.instance.get("baseUrl");
       final url = Uri.parse("$baseUrl/login");
@@ -136,23 +122,19 @@ class ApiController {
         body: jsonEncode({'username': username, 'password': password}),
       );
 
+      final status = jsonDecode(response.body);
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
         await _saveToken(data['access_token']);
-        await getReverbAppKey();
-        final successfullyGetUserInfo = await getUserInfo();
-        if (!successfullyGetUserInfo) return false;
+        await getUserInfo();
         await getAuxiliaries();
-        return true;
+        await getReverbAppKey();
       } else {
-        print('Login failed: ${response.statusCode} - ${response.body}');
-        return false;
+        throw Exception(status['message']);
       }
     } catch (e) {
-      print('Error during login: $e');
-      return false;
+      rethrow;
     }
-    return false;
   }
 
   /// Common headers with authorization
@@ -163,6 +145,7 @@ class ApiController {
     }
     return {
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
       'Authorization': 'Bearer $_accessToken',
     };
   }
@@ -186,13 +169,13 @@ class ApiController {
   }
 
   /// Create employee log
-  Future<dynamic> createEmployeeLog(String sub) async {
+  Future<Map<String, dynamic>> createEmployeeLog(String sub) async {
     try {
       final baseUrl = await Configuration.instance.get("baseUrl");
       final userInfo = await loadUserInfo();
 
-      if (userInfo == null || userInfo['id'] == null) {
-        throw Exception('User info not found. Please login first.');
+      if (userInfo == null) {
+        throw Exception('User info not found.');
       }
 
       final headers = await _headers();
@@ -204,75 +187,34 @@ class ApiController {
         headers: headers,
         body: jsonEncode({"employee_id": employeeId, "sub": sub}),
       );
-
       final result = jsonDecode(response.body);
-      final error = EmployeeLogError.fromCode(result['error_code'] as String?);
+      print(result);
+      final enabledStates = ["On Shift", "Calling", "SMS", "Lunch OT"];
 
-      // =========================
-      // ✅ SUCCESS FLOW
-      // =========================
-      if (error == EmployeeLogError.success) {
-        final enabledStates = ["On Shift", "Calling", "SMS", "Lunch OT"];
-
-        final capturer = PeriodicCaptureController();
-
-        if (enabledStates.contains(sub)) {
-          print('✅ Enabling idle detection for: $sub');
-          await IdleService.instance.updateConfig(
-            IdleService.instance.config.copyWith(enabled: true),
-          );
-        } else {
-          print('❌ Disabling idle detection for: $sub');
-          await IdleService.instance.updateConfig(
-            IdleService.instance.config.copyWith(enabled: false),
-          );
-        }
-
-        if (userInfo['enable_screen_capture'] == 1) {
-          capturer.startCapturing();
-        }
-
-        return result;
+      if (enabledStates.contains(sub)) {
+        print('✅ Enabling idle detection for: $sub');
+        await IdleService.instance.updateConfig(
+          IdleService.instance.config.copyWith(enabled: true),
+        );
+      } else {
+        print('❌ Disabling idle detection for: $sub');
+        await IdleService.instance.updateConfig(
+          IdleService.instance.config.copyWith(enabled: false),
+        );
       }
 
-      // =========================
-      // ❌ ERROR FLOW (ENUM-DRIVEN)
-      // =========================
-      switch (error) {
-        case EmployeeLogError.alreadyTimedIn:
-        case EmployeeLogError.alreadyTimedOut:
-        case EmployeeLogError.noTimeIn:
-        case EmployeeLogError.duplicateAux:
-          CustomNotification.warning(result['message']);
-          break;
-
-        case EmployeeLogError.noActiveSchedule:
-        case EmployeeLogError.employeeNotFound:
-          CustomNotification.error(result['message']);
-          break;
-
-        case EmployeeLogError.serverError:
-          CustomNotification.error('Server error. Please try again.');
-          break;
-
-        default:
-          CustomNotification.error(
-            result['message'] ?? 'Something went wrong.',
-          );
+      final capturer = PeriodicCaptureController();
+      if (userInfo['enable_screen_capture'] == 1) {
+        capturer.startCapturing();
       }
 
       return result;
     } catch (e) {
-      CustomNotification.error("Error creating employee log");
-      await forceLogout();
       rethrow;
     }
   }
 
   Future<void> forceLogout() async {
-    await Future.delayed(const Duration(seconds: 3));
-    CustomNotification.error("Token Expired!");
-    await Future.delayed(const Duration(seconds: 3));
     await ApiController.instance.logout();
     await WindowModes.normal();
     navigatorKey.currentState?.pushAndRemoveUntil(
@@ -287,10 +229,8 @@ class ApiController {
       final baseUrl = await Configuration.instance.get("baseUrl");
       final userInfo = await loadUserInfo();
 
-      if (userInfo == null || userInfo['id'] == null) {
-        throw Exception(
-          'getLatestEmployeeLog: User info not found. Please login first.',
-        );
+      if (userInfo == null) {
+        throw Exception('getLatestEmployeeLog: User info not found.');
       }
 
       final headers = await _headers();
@@ -333,7 +273,7 @@ class ApiController {
       final headers = await _headers();
       final userInfo = await loadUserInfo();
 
-      if (userInfo == null || userInfo['id'] == null) {
+      if (userInfo == null) {
         print('User info not found.');
         return false;
       }
@@ -381,7 +321,7 @@ class ApiController {
       final headers = await _headers();
       final userInfo = await loadUserInfo();
 
-      if (userInfo == null || userInfo['id'] == null) {
+      if (userInfo == null) {
         print('Error: User info not found.');
         return false;
       }
@@ -423,42 +363,35 @@ class ApiController {
 
   /// Update employee idle status
   Future<void> createEmployeeIdle(bool isIdle) async {
-    try {
-      final baseUrl = await Configuration.instance.get("baseUrl");
-      final headers = await _headers();
-      final idleStatus = isIdle ? "1" : "0";
-      final userInfo = await loadUserInfo();
+    final baseUrl = await Configuration.instance.get("baseUrl");
+    final headers = await _headers();
+    final idleStatus = isIdle ? "1" : "0";
+    final userInfo = await loadUserInfo();
 
-      if (userInfo == null || userInfo['id'] == null) {
-        throw Exception(
-          'create employee idle User info not found. Please login first.',
-        );
-      }
-      final employeeId = userInfo['id'];
-      final siteId = userInfo['site_id'];
-      final timezone = userInfo['timezone'];
-      final url = Uri.parse('$baseUrl/create-employee-idle');
-      final response = await http.post(
-        url,
-        headers: headers,
-        body: jsonEncode({
-          'employee_id': employeeId,
-          'site_id': siteId,
-          'timezone': timezone,
-          'status': idleStatus,
-        }),
+    if (userInfo == null) {
+      throw Exception('create employee idle User info not found.');
+    }
+    final employeeId = userInfo['id'];
+    final siteId = userInfo['site_id'];
+    final timezone = userInfo['timezone'];
+    final url = Uri.parse('$baseUrl/create-employee-idle');
+    final response = await http.post(
+      url,
+      headers: headers,
+      body: jsonEncode({
+        'employee_id': employeeId,
+        'site_id': siteId,
+        'timezone': timezone,
+        'status': idleStatus,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      print('Employee idle status updated to $isIdle successfully.');
+    } else {
+      print(
+        'Failed to update idle status. Status: ${response.statusCode}, Body: ${response.body}',
       );
-
-      if (response.statusCode == 200) {
-        print('Employee idle status updated to $isIdle successfully.');
-      } else {
-        print(
-          'Failed to update idle status. Status: ${response.statusCode}, Body: ${response.body}',
-        );
-      }
-    } catch (e) {
-      print('Error updating employee idle: $e');
-      await forceLogout();
     }
   }
 
@@ -478,35 +411,28 @@ class ApiController {
     return null;
   }
 
-  Future<Map<String, dynamic>?> loadReverbAppKey() async {
+  Future<String?> loadReverbAppKey() async {
     final prefs = await SharedPreferences.getInstance();
-    final revertAppKey = prefs.getString('reverbAppKey');
-    if (revertAppKey != null) {
-      return jsonDecode(revertAppKey);
-    }
-    return null;
+    return prefs.getString('reverbAppKey');
   }
 
   /// Get user info from API and save to localStorage (no return)
-  Future<bool> getUserInfo() async {
+  Future<void> getUserInfo() async {
     try {
       final baseUrl = await Configuration.instance.get("baseUrl");
       final headers = await _headers();
       final url = Uri.parse('$baseUrl/me');
       final response = await http.get(url, headers: headers);
-
+      final status = jsonDecode(response.body);
       if (response.statusCode == 200) {
         print('User info fetched successfully.');
         final userInfo = jsonDecode(response.body);
-        await _saveUserInfo(userInfo); // Save to localStorage
-        return true;
+        await _saveUserInfo(userInfo);
       } else {
-        print('Failed to fetch user info: ${response.statusCode}');
-        return false;
+        throw Exception(status['message']);
       }
     } catch (e) {
-      print('Error fetching user info: $e');
-      return false;
+      rethrow;
     }
   }
 

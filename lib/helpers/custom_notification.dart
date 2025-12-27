@@ -264,21 +264,21 @@ class _NotificationWidgetState extends State<_NotificationWidget>
                   ),
 
                   // Close button
-                  // GestureDetector(
-                  //   onTap: _dismiss,
-                  //   child: Container(
-                  //     padding: const EdgeInsets.all(4),
-                  //     decoration: BoxDecoration(
-                  //       color: Colors.grey.shade100,
-                  //       borderRadius: BorderRadius.circular(6),
-                  //     ),
-                  //     child: Icon(
-                  //       Icons.close,
-                  //       size: isMobile ? 16 : 18,
-                  //       color: Colors.grey.shade600,
-                  //     ),
-                  //   ),
-                  // ),
+                  GestureDetector(
+                    onTap: _dismiss,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Icon(
+                        Icons.close,
+                        size: isMobile ? 16 : 18,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),

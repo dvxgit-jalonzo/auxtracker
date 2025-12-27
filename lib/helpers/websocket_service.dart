@@ -44,6 +44,7 @@ class WebSocketService {
 
       final userInfo = await ApiController.instance.loadUserInfo();
       final reverb = await ApiController.instance.loadReverbAppKey();
+
       final wsHost = await Configuration.instance.get("wsHost");
       if (reverb == null) {
         throw Exception("reverb app key not found");
@@ -56,7 +57,7 @@ class WebSocketService {
 
       _channel = IOWebSocketChannel.connect(
         Uri.parse(
-          '$wsHost/app/${reverb['key']}?protocol=7&client=js&version=4.4.0&flash=false',
+          '$wsHost/app/$reverb?protocol=7&client=js&version=4.4.0&flash=false',
         ),
       );
 
