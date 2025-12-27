@@ -14,6 +14,7 @@ class CustomNotification {
     required NotificationType type,
     Duration duration = const Duration(seconds: 3),
     String? title,
+    bool autoDismiss = false,
   }) {
     final overlay = _overlay;
     final context = _context;
@@ -46,10 +47,12 @@ class CustomNotification {
     overlay.insert(_currentOverlay!);
 
     // Auto dismiss
-    Future.delayed(duration, () {
-      _currentOverlay?.remove();
-      _currentOverlay = null;
-    });
+    if (autoDismiss) {
+      Future.delayed(duration, () {
+        _currentOverlay?.remove();
+        _currentOverlay = null;
+      });
+    }
   }
 
   static void success(String message, {String? title}) {
