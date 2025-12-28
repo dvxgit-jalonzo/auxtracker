@@ -70,10 +70,10 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> with WindowListener {
   final _formKey = GlobalKey<FormState>();
-  // final _usernameController = TextEditingController();
-  // final _passwordController = TextEditingController();
-  final _usernameController = TextEditingController(text: "jessa");
-  final _passwordController = TextEditingController(text: "admin123");
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+  // final _usernameController = TextEditingController(text: "jessa");
+  // final _passwordController = TextEditingController(text: "admin123");
   bool _isPasswordVisible = false;
   bool _isLoading = false;
   String _version = "";
