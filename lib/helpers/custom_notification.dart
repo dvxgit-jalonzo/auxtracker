@@ -14,7 +14,7 @@ class CustomNotification {
     required NotificationType type,
     Duration duration = const Duration(seconds: 3),
     String? title,
-    bool autoDismiss = false,
+    bool autoDismiss = true, // Changed default to true
   }) {
     final overlay = _overlay;
     final context = _context;
@@ -37,6 +37,7 @@ class CustomNotification {
         width: notifWidth,
         duration: duration,
         title: title,
+        autoDismiss: autoDismiss, // Pass the parameter
         onDismiss: () {
           _currentOverlay?.remove();
           _currentOverlay = null;
@@ -45,30 +46,50 @@ class CustomNotification {
     );
 
     overlay.insert(_currentOverlay!);
-
-    // Auto dismiss
-    if (autoDismiss) {
-      Future.delayed(duration, () {
-        _currentOverlay?.remove();
-        _currentOverlay = null;
-      });
-    }
   }
 
-  static void success(String message, {String? title}) {
-    show(message: message, type: NotificationType.success, title: title);
+  static void success(
+    String message, {
+    String? title,
+    bool autoDismiss = true,
+  }) {
+    show(
+      message: message,
+      type: NotificationType.success,
+      title: title,
+      autoDismiss: autoDismiss,
+    );
   }
 
-  static void error(String message, {String? title}) {
-    show(message: message, type: NotificationType.error, title: title);
+  static void error(String message, {String? title, bool autoDismiss = false}) {
+    show(
+      message: message,
+      type: NotificationType.error,
+      title: title,
+      autoDismiss: autoDismiss,
+    );
   }
 
-  static void info(String message, {String? title}) {
-    show(message: message, type: NotificationType.info, title: title);
+  static void info(String message, {String? title, bool autoDismiss = true}) {
+    show(
+      message: message,
+      type: NotificationType.info,
+      title: title,
+      autoDismiss: autoDismiss,
+    );
   }
 
-  static void warning(String message, {String? title}) {
-    show(message: message, type: NotificationType.warning, title: title);
+  static void warning(
+    String message, {
+    String? title,
+    bool autoDismiss = false,
+  }) {
+    show(
+      message: message,
+      type: NotificationType.warning,
+      title: title,
+      autoDismiss: autoDismiss,
+    );
   }
 }
 
@@ -94,6 +115,7 @@ class _NotificationWidget extends StatefulWidget {
   final double width;
   final Duration duration;
   final String? title;
+  final bool autoDismiss;
   final VoidCallback onDismiss;
 
   const _NotificationWidget({
@@ -102,6 +124,7 @@ class _NotificationWidget extends StatefulWidget {
     required this.width,
     required this.duration,
     required this.onDismiss,
+    required this.autoDismiss,
     this.title,
   });
 
@@ -135,12 +158,14 @@ class _NotificationWidgetState extends State<_NotificationWidget>
 
     _controller.forward();
 
-    // Auto dismiss animation
-    Future.delayed(widget.duration - const Duration(milliseconds: 300), () {
-      if (mounted) {
-        _controller.reverse().then((_) => widget.onDismiss());
-      }
-    });
+    // Auto dismiss animation - only if autoDismiss is true
+    if (widget.autoDismiss) {
+      Future.delayed(widget.duration - const Duration(milliseconds: 300), () {
+        if (mounted) {
+          _controller.reverse().then((_) => widget.onDismiss());
+        }
+      });
+    }
   }
 
   @override

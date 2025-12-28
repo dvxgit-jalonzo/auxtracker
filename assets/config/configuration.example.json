@@ -1,12 +1,23 @@
 {
-  "host": "122.3.188.98:44301",
-  "baseUrl": "https://122.3.188.98:44301/api",
-  "wsHost": "wss://122.3.188.98:6004",
-  "updater": "http://122.3.188.98:44300/api/app-update",
-  "host": "127.0.0.1:8000",
-  "baseUrl": "http://127.0.0.1:8000/api",
-  "wsHost": "ws://127.0.0.1:6004",
-  "updater": "http://127.0.0.1:8000/api/app-update"
+  "active" : {
+    "environment" : "local"
+  },
+  "local" : {
+    "host": "127.0.0.1:8000",
+    "baseUrl": "http://127.0.0.1:8000/api",
+    "wsHost": "ws://127.0.0.1:6004",
+    "updater": "http://127.0.0.1:8000/api/app-update"
+  },
+  "staging" : {
+    "host": "122.3.188.98:44301",
+    "baseUrl": "https://122.3.188.98:44301/api",
+    "wsHost": "wss://122.3.188.98:6004",
+    "updater": "http://122.3.188.98:44300/api/app-update"
+  },
+  "production" : {
+    "host": "122.3.188.98:44301",
+    "baseUrl": "https://122.3.188.98:44301/api",
+    "wsHost": "wss://122.3.188.98:6004",
+    "updater": "http://122.3.188.98:44300/api/app-update"
+  }
 }
-
-

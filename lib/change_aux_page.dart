@@ -84,7 +84,8 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
 
   Future<String> _getUsername() async {
     final userInfo = await ApiController.instance.loadUserInfo();
-    return userInfo!['name'];
+    // return userInfo!['name'];
+    return "Jhun Norman";
   }
 
   Future<void> _initializeApp() async {
@@ -900,10 +901,15 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   }
 
   Future<void> settingLastLog() async {
-    await Future.delayed(Duration(seconds: 3));
     final response = await ApiController.instance.getLatestEmployeeLog();
     final lastLog = response['aux_sub'];
-    CustomNotification.info("Setting aux to $lastLog");
+    if (lastLog == "OFF") {
+      CustomNotification.warning(
+        "Status: $lastLog. Please update your Aux to continue today's session.",
+      );
+    } else {
+      CustomNotification.info("Setting aux to $lastLog");
+    }
     setState(() {
       _stateAux = response['aux_sub'];
     });
@@ -936,175 +942,178 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                         builder: (context, snapshot) {
                           if (snapshot.connectionState ==
                               ConnectionState.waiting) {
-                            return const Center(
-                              child: CircularProgressIndicator(),
+                            return Center(
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      Colors.lightBlue.withValues(alpha: 0.2),
+                                      Colors.white.withValues(alpha: 0.08),
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.2),
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.lightGreenAccent.withValues(
+                                      alpha: 0.7,
+                                    ),
+                                  ),
+                                ),
+                              ),
                             );
                           }
 
-                          // 3. Return the UI after the data is "ready"
-                          return Center(
-                            child: Text(
-                              snapshot.data?.toUpperCase() ?? "Unknow",
-                              style: TextStyle(
-                                color: Colors.yellow,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 10,
+                          return Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.lightBlue.withValues(alpha: 0.2),
+                                  Colors.white.withValues(alpha: 0.08),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                               ),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                width: 1.5,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.4),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // Name section
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            Colors.yellow.shade600,
+                                            Colors.amber.shade400,
+                                          ],
+                                        ),
+                                        shape: BoxShape.circle,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.yellow.withValues(
+                                              alpha: 0.5,
+                                            ),
+                                            blurRadius: 8,
+                                            spreadRadius: 1,
+                                          ),
+                                        ],
+                                      ),
+                                      child: Icon(
+                                        Icons.person,
+                                        size: 16,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        snapshot.data?.toUpperCase() ??
+                                            "UNKNOWN",
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                          letterSpacing: 1.2,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 1,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+
+                                const SizedBox(height: 10),
+
+                                // Status and Timer section
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        _isIdle
+                                            ? "Inactive"
+                                            : (_stateAux ?? "NOT LOGGED"),
+                                        style: TextStyle(
+                                          color: _isIdle
+                                              ? Colors.yellow
+                                              : Colors.lightGreenAccent,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          letterSpacing: 0.8,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.1,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.2,
+                                          ),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.timer_sharp,
+                                            size: 16,
+                                            color: Colors.lightGreenAccent,
+                                          ),
+                                          const SizedBox(width: 5),
+                                          Text(
+                                            _formattedTime,
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              letterSpacing: 0.4,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           );
                         },
                       ),
-                      SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Flexible(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12, // 16 → 12
-                                vertical: 8, // 10 → 8
-                              ),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Colors.lightBlue.withValues(alpha: 0.2),
-                                    Colors.white.withValues(alpha: 0.08),
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                borderRadius: BorderRadius.circular(
-                                  20,
-                                ), // 25 → 20
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.2),
-                                  width: 1.5,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.4),
-                                    blurRadius: 12, // 15 → 12
-                                    offset: const Offset(0, 4), // 5 → 4
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const SizedBox(width: 6), // 8 → 6
-                                  Flexible(
-                                    child: _isIdle
-                                        ? Text(
-                                            "Inactive",
-                                            style: TextStyle(
-                                              color: Colors.lightGreenAccent,
-                                              fontSize: 12, // 14 → 12
-                                              fontWeight: FontWeight.w600,
-                                              letterSpacing: 0.8, // 1.0 → 0.8
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
-                                          )
-                                        : Text(
-                                            _stateAux ?? "NOT LOGGED",
-                                            style: TextStyle(
-                                              color: Colors.lightGreenAccent,
-                                              fontSize: 12, // 14 → 12
-                                              fontWeight: FontWeight.w600,
-                                              letterSpacing: 0.8, // 1.0 → 0.8
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                  ),
-                                  const SizedBox(width: 5), // 15 → 10
-
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, // 10 → 8
-                                      vertical: 4, // 5 → 4
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.1,
-                                      ),
-                                      borderRadius: BorderRadius.circular(
-                                        12,
-                                      ), // 15 → 12
-                                      border: Border.all(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.2,
-                                        ),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.timer_sharp,
-                                          size: 15, // 14 → 12
-                                          color: Colors.lightGreenAccent,
-                                        ),
-                                        const SizedBox(width: 5), // 6 → 5
-                                        Text(
-                                          _formattedTime,
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 10, // 12 → 11
-                                            fontWeight: FontWeight.bold,
-                                            letterSpacing: 0.4, // 0.5 → 0.4
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-
-                          SizedBox(width: 7),
-                          InkWell(
-                            borderRadius: BorderRadius.circular(40),
-                            onTap: () {
-                              _requestLogout();
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(1.5),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle, // Changed to circle
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.deepPurple,
-                                    blurRadius: 8,
-                                  ),
-                                ],
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Colors.deepOrange.shade500,
-                                    Colors.pinkAccent.shade700,
-                                  ],
-                                ),
-                              ),
-                              child: Container(
-                                padding: const EdgeInsets.all(
-                                  8,
-                                ), // Equal padding on all sides
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade900,
-                                  shape: BoxShape.circle, // Changed to circle
-                                ),
-                                child: Icon(
-                                  Icons.settings_power,
-                                  size: 15,
-                                  color: Colors.deepOrange.shade500,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-
                       const SizedBox(height: 8),
 
                       if (_tabController != null)
