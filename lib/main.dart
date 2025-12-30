@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:auto_updater/auto_updater.dart';
+import 'package:auxtrack/helpers/app_updater_listener.dart';
 import 'package:auxtrack/helpers/custom_notification.dart';
 import 'package:auxtrack/helpers/window_modes.dart';
 import 'package:flutter/material.dart';
@@ -16,8 +18,12 @@ import 'helpers/configuration.dart';
 import 'helpers/http_overrides.dart';
 
 // bool updateChecker = false;
+final Completer<bool> updateGate = Completer<bool>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  autoUpdater.addListener(AppUpdaterListener(updateGate));
 
   if (Platform.isWindows) {
     String feedURL = await Configuration.instance.get("updater");
@@ -29,8 +35,12 @@ void main() async {
   }
 
   HttpOverrides.global = MyHttpOverrides();
-  await WindowModes.normal();
-  runApp(const MyApp());
+  final shouldRunApp = await updateGate.future;
+
+  if (shouldRunApp) {
+    await WindowModes.normal();
+    runApp(const MyApp());
+  }
 }
 
 class MyApp extends StatefulWidget {
