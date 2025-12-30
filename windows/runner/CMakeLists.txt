@@ -7,19 +7,29 @@ project(runner LANGUAGES CXX)
 #
 # Any new source files that you add to the application should be added here.
 add_executable(${BINARY_NAME} WIN32
-  "flutter_window.cpp"
-  "main.cpp"
-  "utils.cpp"
-  "win32_window.cpp"
-  "${FLUTTER_MANAGED_DIR}/generated_plugin_registrant.cc"
-  "Runner.rc"
-  "runner.exe.manifest"
+        "flutter_window.cpp"
+        "main.cpp"
+        "utils.cpp"
+        "win32_window.cpp"
+        "${FLUTTER_MANAGED_DIR}/generated_plugin_registrant.cc"
+        "Runner.rc"
+        "runner.exe.manifest"
 )
 
+# Copy ffmpeg directory
 add_custom_command(TARGET auxtrack POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/../ffmpeg"
         "$<TARGET_FILE_DIR:auxtrack>/ffmpeg"
+)
+
+# Copy Visual C++ Runtime DLLs
+add_custom_command(TARGET ${BINARY_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/resources/vcruntime140.dll"
+        "${CMAKE_CURRENT_SOURCE_DIR}/resources/vcruntime140_1.dll"
+        "${CMAKE_CURRENT_SOURCE_DIR}/resources/msvcp140.dll"
+        "$<TARGET_FILE_DIR:${BINARY_NAME}>"
 )
 
 # Apply the standard set of build settings. This can be removed for applications
@@ -44,4 +54,3 @@ target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
 
 # Run the Flutter tool portions of the build. This must not be removed.
 add_dependencies(${BINARY_NAME} flutter_assemble)
-
