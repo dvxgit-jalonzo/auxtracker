@@ -7,6 +7,7 @@ import 'package:auxtrack/helpers/custom_notification.dart';
 import 'package:auxtrack/helpers/window_modes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_single_instance/flutter_single_instance.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
@@ -23,6 +24,28 @@ final Completer<bool> updateGate = Completer<bool>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Initialize window manager (required for flutter_single_instance)
+  await windowManager.ensureInitialized();
+
+  if (!await FlutterSingleInstance().isFirstInstance()) {
+    print("App is already running");
+
+    final err = await FlutterSingleInstance().focus();
+
+    if (err != null) {
+      print("Error focusing running instance: $err");
+    }
+    exit(0);
+  }
+
+  // Set up focus callback for when another instance tries to open
+  FlutterSingleInstance.onFocus = (metadata) async {
+    print("Another instance attempted to open");
+    await windowManager.show();
+    await windowManager.focus();
+  };
+
+  // Continue with your existing auto-updater logic
   autoUpdater.addListener(AppUpdaterListener(updateGate));
 
   if (Platform.isWindows) {
