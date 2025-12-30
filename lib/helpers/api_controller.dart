@@ -5,6 +5,7 @@ import 'package:auxtrack/helpers/configuration.dart';
 import 'package:auxtrack/helpers/custom_notification.dart';
 import 'package:auxtrack/helpers/idle_service.dart';
 import 'package:auxtrack/helpers/periodic_capture_controller.dart';
+import 'package:auxtrack/helpers/prototype_logger.dart';
 import 'package:auxtrack/helpers/window_modes.dart';
 import 'package:auxtrack/main.dart';
 import 'package:flutter/material.dart';
@@ -188,6 +189,11 @@ class ApiController {
         body: jsonEncode({"employee_id": employeeId, "sub": sub}),
       );
       final result = jsonDecode(response.body);
+
+      await PrototypeLogger().trail(
+        "[response : ${result['code']}] auxiliary to $sub",
+      );
+
       print("CreateEmployeeLogResult : $result");
       final enabledStates = ["On Shift", "Calling", "SMS", "Lunch OT"];
 
