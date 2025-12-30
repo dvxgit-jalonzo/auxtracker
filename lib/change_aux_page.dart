@@ -13,6 +13,7 @@ import 'package:window_manager/window_manager.dart';
 
 import 'helpers/api_controller.dart';
 import 'helpers/idle_service.dart';
+import 'helpers/prototype_logger.dart';
 import 'helpers/recording_service.dart';
 import 'main.dart';
 import 'models/auxiliary.dart';
@@ -230,7 +231,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                 // Status and Timer section
                                 Row(
                                   mainAxisAlignment:
-                                  MainAxisAlignment.spaceBetween,
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Flexible(
                                       child: Text(
@@ -360,18 +361,16 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                         borderRadius: BorderRadius.circular(8),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.greenAccent.withValues(
-                                              alpha: 0.3,
-                                            ),
+                                            color: Colors.greenAccent
+                                                .withValues(alpha: 0.3),
                                             blurRadius: 6,
                                             offset: const Offset(0, 2),
                                           ),
                                         ],
                                       ),
                                       labelColor: Colors.white,
-                                      unselectedLabelColor: Colors.white.withValues(
-                                        alpha: 0.5,
-                                      ),
+                                      unselectedLabelColor: Colors.white
+                                          .withValues(alpha: 0.5),
                                       labelStyle: const TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
@@ -383,8 +382,8 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                         letterSpacing: 0.2,
                                       ),
                                       tabs: _auxiliariesByCategory.keys.map((
-                                          category,
-                                          ) {
+                                        category,
+                                      ) {
                                         return Tab(
                                           child: Container(
                                             padding: const EdgeInsets.symmetric(
@@ -433,13 +432,16 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                     ),
                                     child: Icon(
                                       Icons.chevron_left,
-                                      color: Colors.white.withValues(alpha: 0.8),
+                                      color: Colors.white.withValues(
+                                        alpha: 0.8,
+                                      ),
                                       size: 20,
                                     ),
                                   ),
                                 ),
                               // Right arrow indicator
-                              if (_tabController!.index < _tabController!.length - 1)
+                              if (_tabController!.index <
+                                  _tabController!.length - 1)
                                 Positioned(
                                   right: 0,
                                   top: 0,
@@ -462,7 +464,9 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                     ),
                                     child: Icon(
                                       Icons.chevron_right,
-                                      color: Colors.white.withValues(alpha: 0.8),
+                                      color: Colors.white.withValues(
+                                        alpha: 0.8,
+                                      ),
                                       size: 20,
                                     ),
                                   ),
@@ -475,33 +479,33 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                       Expanded(
                         child: _tabController == null
                             ? Center(
-                          child: Text(
-                            'No auxiliaries available',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.7),
-                              fontSize: 12,
-                            ),
-                          ),
-                        )
+                                child: Text(
+                                  'No auxiliaries available',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.7),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              )
                             : Container(
-                          padding: EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: Colors.purple.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.2),
-                            ),
-                          ),
-                          child: TabBarView(
-                            controller: _tabController,
-                            children: _auxiliariesByCategory.entries
-                                .map(
-                                  (entry) =>
-                                  _buildAuxiliaryList(entry.value),
-                            )
-                                .toList(),
-                          ),
-                        ),
+                                padding: EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Colors.purple.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.2),
+                                  ),
+                                ),
+                                child: TabBarView(
+                                  controller: _tabController,
+                                  children: _auxiliariesByCategory.entries
+                                      .map(
+                                        (entry) =>
+                                            _buildAuxiliaryList(entry.value),
+                                      )
+                                      .toList(),
+                                ),
+                              ),
                       ),
                     ],
                   ),
@@ -609,9 +613,9 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                       colors: isSelected
                           ? [Colors.lightBlue.shade600, Colors.indigo.shade800]
                           : [
-                        Colors.white.withValues(alpha: 0.15),
-                        Colors.white.withValues(alpha: 0.08),
-                      ],
+                              Colors.white.withValues(alpha: 0.15),
+                              Colors.white.withValues(alpha: 0.08),
+                            ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -624,19 +628,19 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                     ),
                     boxShadow: isSelected
                         ? [
-                      BoxShadow(
-                        color: Colors.cyanAccent.withValues(alpha: 0.3),
-                        blurRadius: 10,
-                        spreadRadius: 2,
-                      ),
-                    ]
+                            BoxShadow(
+                              color: Colors.cyanAccent.withValues(alpha: 0.3),
+                              blurRadius: 10,
+                              spreadRadius: 2,
+                            ),
+                          ]
                         : [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.3),
-                        blurRadius: 3,
-                        offset: const Offset(1, 1),
-                      ),
-                    ],
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.3),
+                              blurRadius: 3,
+                              offset: const Offset(1, 1),
+                            ),
+                          ],
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -683,7 +687,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       ),
     );
   }
-
 
   Future<String> _getUsername() async {
     final userInfo = await ApiController.instance.loadUserInfo();
@@ -782,6 +785,13 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     });
     CustomNotification.info(response['message']);
     if (response['code'] != "DUPLICATE_AUX") _startTimer();
+    final userInfo = await ApiController.instance.loadUserInfo();
+    if (userInfo != null) {
+      final logger = PrototypeLogger(
+        logFolder: userInfo['username'].toString().toLowerCase(),
+      );
+      logger.trail("[${response['code']}] auxiliary set to $sub.");
+    }
   }
 
   Future<void> _createEmployeeLogTimeIn() async {
@@ -789,6 +799,13 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     final response = await ApiController.instance.createEmployeeLog(sub);
 
     if (response['code'] == "NO_ACTIVE_SCHEDULE") {
+      final userInfo = await ApiController.instance.loadUserInfo();
+      if (userInfo != null) {
+        final logger = PrototypeLogger(
+          logFolder: userInfo['username'].toString().toLowerCase(),
+        );
+        logger.trail("[${response['code']}] force logout.");
+      }
       CustomNotification.warning(response['message']);
       await Future.delayed(Duration(seconds: 3));
       await ApiController.instance.forceLogout();
@@ -797,6 +814,13 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
 
     if (response['code'] == "ALREADY_TIMED_IN" ||
         response['code'] == "DUPLICATE_AUX") {
+      final userInfo = await ApiController.instance.loadUserInfo();
+      if (userInfo != null) {
+        final logger = PrototypeLogger(
+          logFolder: userInfo['username'].toString().toLowerCase(),
+        );
+        logger.trail("[${response['code']}] ${response['message']}");
+      }
       await settingLastLog();
       return;
     } else {
@@ -804,6 +828,13 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       setState(() {
         _stateAux = sub;
       });
+      final userInfo = await ApiController.instance.loadUserInfo();
+      if (userInfo != null) {
+        final logger = PrototypeLogger(
+          logFolder: userInfo['username'].toString().toLowerCase(),
+        );
+        logger.trail("[${response['code']}] auxiliary set to $sub.");
+      }
       CustomNotification.info(response['message']);
     }
   }
@@ -871,6 +902,12 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
         throw Exception('change aux User info not found. Please login first.');
       }
       final result = await ApiController.instance.createEmployeeLog("OFF");
+
+      final logger = PrototypeLogger(
+        logFolder: userInfo['username'].toString().toLowerCase(),
+      );
+      logger.trail("[${result['code']}] auxiliary set to OFF.");
+
       CustomNotification.info(result['message']);
       await ApiController.instance.logout();
       await WindowModes.normal();
@@ -1434,9 +1471,23 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
             });
             CustomNotification.info(response['message']);
             if (response['code'] == "NO_ACTIVE_SCHEDULE") {
+              final userInfo = await ApiController.instance.loadUserInfo();
+              if (userInfo != null) {
+                final logger = PrototypeLogger(
+                  logFolder: userInfo['username'].toString().toLowerCase(),
+                );
+                logger.trail("[${response['code']}] force logout.");
+              }
               await ApiController.instance.forceLogout();
               return;
             }
+
+            final logger = PrototypeLogger(
+              logFolder: userInfo['username'].toString().toLowerCase(),
+            );
+            logger.trail(
+              "[${response['code']}] auxiliary set to ${_selectedAux!['sub']}.",
+            );
 
             if (response['code'] != "DUPLICATE_AUX") _startTimer();
           } else {
@@ -1481,12 +1532,26 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       });
       CustomNotification.info(response['message']);
       if (response['code'] == "NO_ACTIVE_SCHEDULE") {
+        final userInfo = await ApiController.instance.loadUserInfo();
+        if (userInfo != null) {
+          final logger = PrototypeLogger(
+            logFolder: userInfo['username'].toString().toLowerCase(),
+          );
+          logger.trail("[${response['code']}] force logout.");
+        }
         await ApiController.instance.forceLogout();
         return;
       }
       if (response['code'] != "DUPLICATE_AUX") {
         _startTimer();
       }
+
+      final logger = PrototypeLogger(
+        logFolder: userInfo['username'].toString().toLowerCase(),
+      );
+      logger.trail(
+        "[${response['code']}] auxiliary set to ${_selectedAux!['sub']}.",
+      );
     }
   }
 
@@ -1501,10 +1566,15 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       CustomNotification.info("Setting aux to $lastLog");
     }
     setState(() {
-      _stateAux = response['aux_sub'];
+      _stateAux = lastLog;
     });
+    final userInfo = await ApiController.instance.loadUserInfo();
+    if (userInfo != null) {
+      final logger = PrototypeLogger(
+        logFolder: userInfo['username'].toString().toLowerCase(),
+      );
+      logger.trail("[${response['code']}] auxiliary set to $lastLog.");
+    }
     _startTimer(Duration(seconds: response['elapsedTime']));
   }
-
-
 }

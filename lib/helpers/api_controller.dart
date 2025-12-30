@@ -5,7 +5,6 @@ import 'package:auxtrack/helpers/configuration.dart';
 import 'package:auxtrack/helpers/custom_notification.dart';
 import 'package:auxtrack/helpers/idle_service.dart';
 import 'package:auxtrack/helpers/periodic_capture_controller.dart';
-import 'package:auxtrack/helpers/prototype_logger.dart';
 import 'package:auxtrack/helpers/window_modes.dart';
 import 'package:auxtrack/main.dart';
 import 'package:flutter/material.dart';
@@ -190,10 +189,6 @@ class ApiController {
       );
       final result = jsonDecode(response.body);
 
-      await PrototypeLogger().trail(
-        "[response : ${result['code']}] auxiliary to $sub",
-      );
-
       print("CreateEmployeeLogResult : $result");
       final enabledStates = ["On Shift", "Calling", "SMS", "Lunch OT"];
 
@@ -266,8 +261,11 @@ class ApiController {
 
       // Send GET request
       final response = await http.get(url, headers: headers);
+
       //
-      return jsonDecode(response.body);
+      final result = jsonDecode(response.body);
+
+      return result;
     } catch (e) {
       CustomNotification.error("Error getting last aux");
     }

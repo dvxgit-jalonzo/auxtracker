@@ -1,25 +1,38 @@
 import 'dart:io';
 
-import 'package:auxtrack/helpers/api_controller.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 
 class PrototypeLogger {
-  static final PrototypeLogger _instance = PrototypeLogger._internal();
-  factory PrototypeLogger() => _instance;
-  PrototypeLogger._internal();
+  String? _customFolder;
+
+  // Constructor with optional logFolder parameter
+  PrototypeLogger({String? logFolder}) : _customFolder = logFolder;
+
+  // Still keep setFolder if needed to change later
+  void setFolder(String folderName) {
+    _customFolder = folderName;
+  }
+
+  // Clear custom folder
+  void clearFolder() {
+    _customFolder = null;
+  }
 
   Future<String?> _buildLoggerPath() async {
     final appDataDir = await getApplicationSupportDirectory();
     final yearMonth = DateFormat('yyyyMM').format(DateTime.now());
-    final userInfo = await ApiController.instance.loadUserInfo();
-    if (userInfo == null) return null;
-    final username = userInfo['username'];
 
-    // ----------------------------------------------------)
-    final loggerFolder = Directory(
-      '${appDataDir.path}${Platform.pathSeparator}.cache${Platform.pathSeparator}logger${Platform.pathSeparator}$yearMonth${Platform.pathSeparator}$username${Platform.pathSeparator}',
-    );
+    // Build path based on whether custom folder is set
+    final pathParts = [
+      appDataDir.path,
+      '.cache',
+      'logger',
+      yearMonth,
+      if (_customFolder != null) _customFolder!,
+    ];
+
+    final loggerFolder = Directory(pathParts.join(Platform.pathSeparator));
 
     if (!await loggerFolder.exists()) {
       await loggerFolder.create(recursive: true);
@@ -38,17 +51,21 @@ class PrototypeLogger {
 
     if (logPath == null) return;
 
+    // File name format: yyyyMMdd.txt
     final fileName = DateFormat('yyyyMMdd').format(now);
     final logFile = File('$logPath${Platform.pathSeparator}$fileName.txt');
 
+    // Build log entry
     final buffer = StringBuffer();
     buffer.write('[$timestamp] $message');
 
+    // Add optional parameters if provided
     if (optional.isNotEmpty) {
       buffer.write(' | Optional: ${optional.join(', ')}');
     }
 
     buffer.writeln();
+    // Write to file (append mode)
     try {
       await logFile.writeAsString(
         buffer.toString(),
@@ -77,22 +94,28 @@ class PrototypeLogger {
     await trail('WARNING: $message');
   }
 
-  Future<void> clearOldLogs({required String yearMonth}) async {
+  Future<void> clearOldLogs({required String yearMonth, String? folder}) async {
     final appDataDir = await getApplicationSupportDirectory();
 
-    final monthFolder = Directory(
-      '${appDataDir.path}${Platform.pathSeparator}.cache${Platform.pathSeparator}logger${Platform.pathSeparator}$yearMonth',
-    );
+    final pathParts = [
+      appDataDir.path,
+      '.cache',
+      'logger',
+      yearMonth,
+      if (folder != null) folder,
+    ];
+
+    final monthFolder = Directory(pathParts.join(Platform.pathSeparator));
 
     if (await monthFolder.exists()) {
       try {
         await monthFolder.delete(recursive: true);
-        print('Deleted logs for $yearMonth');
+        print('Deleted logs for $yearMonth${folder != null ? '/$folder' : ''}');
       } catch (e) {
         print('Failed to delete logs for $yearMonth: $e');
       }
     } else {
-      print('No logs found for $yearMonth');
+      print('No logs found for $yearMonth${folder != null ? '/$folder' : ''}');
     }
   }
 }
