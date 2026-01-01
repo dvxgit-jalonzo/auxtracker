@@ -381,7 +381,7 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        "Version: $_version (Build: $_buildNumber)",
+                        "Version: $_version ${_buildNumber.isNotEmpty ? "+$_buildNumber" : ""}",
                         style: TextStyle(color: Colors.grey),
                       ),
                     ],
