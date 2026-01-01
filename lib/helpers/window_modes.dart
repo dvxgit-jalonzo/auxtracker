@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:window_manager/window_manager.dart';
 
 class WindowModes {
-  final Size size = Size(380, 430);
+  final Size size = Size(300, 340);
 
   static Future<void> normal() async {
     await windowManager.ensureInitialized();
@@ -38,9 +38,11 @@ class WindowModes {
       WindowOptions(
         size: WindowModes().size,
         center: false,
-        titleBarStyle: TitleBarStyle.normal,
+        titleBarStyle: TitleBarStyle.hidden,
         windowButtonVisibility: false,
         alwaysOnTop: true,
+        skipTaskbar: false,
+        title: "Auxiliary Tracker",
       ),
       () async {
         await windowManager.setAlignment(Alignment.centerRight);

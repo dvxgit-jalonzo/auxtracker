@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
 
-import 'package:auxtrack/components/date_time_bar.dart';
 import 'package:auxtrack/helpers/custom_notification.dart';
 import 'package:auxtrack/helpers/periodic_capture_controller.dart';
 import 'package:auxtrack/helpers/websocket_service.dart';
@@ -12,6 +11,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'components/custom_title_bar.dart';
+import 'components/date_time_bar.dart';
 import 'helpers/api_controller.dart';
 import 'helpers/idle_service.dart';
 import 'helpers/prototype_logger.dart';
@@ -113,7 +114,12 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
             // Use a Stack to overlay the status indicator at the top
             children: [
               Padding(
-                padding: const EdgeInsets.all(15.0),
+                padding: const EdgeInsets.only(
+                  top: 33.0,
+                  left: 10,
+                  right: 10,
+                  bottom: 10,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -293,7 +299,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                         );
                       },
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 5),
                     if (_tabController != null)
                       Container(
                         height: 42,
@@ -488,7 +494,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                         ),
                       ),
 
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 5),
                     Expanded(
                       child: _tabController == null
                           ? Center(
@@ -520,10 +526,14 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                               ),
                             ),
                     ),
-                    const SizedBox(height: 8),
-                    const DateTimeBar(),
                   ],
                 ),
+              ),
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: CustomTitleBar(titleWidget: DateTimeBar()),
               ),
 
               if (_hasPersonalBreakRequest) ...[
@@ -595,12 +605,12 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
 
   Widget _buildAuxiliaryList(List<Auxiliary> auxiliaries) {
     return Padding(
-      padding: const EdgeInsets.all(5),
+      padding: const EdgeInsets.all(2),
       child: GridView.builder(
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          crossAxisSpacing: 10.0,
-          mainAxisSpacing: 10.0,
+          crossAxisSpacing: 5,
+          mainAxisSpacing: 5,
           childAspectRatio: 2,
         ),
         itemCount: auxiliaries.length,
@@ -618,10 +628,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                 borderRadius: BorderRadius.circular(16),
                 onTap: () => _handleAuxSelection(aux),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: isSelected
@@ -1150,22 +1157,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Icon container
-                      Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.15),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.coffee_outlined,
-                          color: Colors.white,
-                          size: 34,
-                        ),
-                      ),
-
-                      const SizedBox(height: 18),
-
                       // Title
                       const Text(
                         'Personal Break',
@@ -1343,14 +1334,13 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                         'TL or Manager is required for this request.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: Colors.white,
+                          color: Colors.yellow,
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 0.5,
                         ),
                       ),
                       const SizedBox(height: 14),
-
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14),
                         decoration: BoxDecoration(
@@ -1362,8 +1352,13 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                         ),
                         child: TextField(
                           controller: username,
-                          style: const TextStyle(color: Colors.white),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                          ),
                           decoration: const InputDecoration(
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(vertical: 11),
                             hintText: 'Enter username',
                             hintStyle: TextStyle(
                               color: Colors.white54,
@@ -1387,8 +1382,13 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                         child: TextField(
                           obscureText: true,
                           controller: password,
-                          style: const TextStyle(color: Colors.white),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                          ),
                           decoration: const InputDecoration(
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(vertical: 11),
                             hintText: 'Enter password',
                             hintStyle: TextStyle(
                               color: Colors.white54,

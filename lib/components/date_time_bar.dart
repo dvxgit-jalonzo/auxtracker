@@ -32,46 +32,33 @@ class _DateTimeBarState extends State<DateTimeBar> {
     final now = DateTime.now();
 
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Row(
-          children: [
-            const Icon(
-              Icons.calendar_month,
-              size: 16,
-              color: Colors.lightGreenAccent,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              DateFormat('EEEE, MMMM d, yyyy').format(now),
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.4,
-              ),
-            ),
-          ],
+        const Icon(
+          Icons.calendar_month,
+          size: 16,
+          color: Colors.lightGreenAccent,
         ),
-
-        Row(
-          children: [
-            const Icon(
-              Icons.timelapse,
-              size: 16,
-              color: Colors.lightGreenAccent,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              DateFormat('HH:mm:ss').format(now),
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.4,
-              ),
-            ),
-          ],
+        const SizedBox(width: 8),
+        Text(
+          DateFormat('MMMM d, yyyy').format(now),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.4,
+          ),
+        ),
+        const SizedBox(width: 8),
+        const Icon(Icons.access_time, size: 16, color: Colors.lightGreenAccent),
+        const SizedBox(width: 8),
+        Text(
+          DateFormat('HH:mm:ss').format(now),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.4,
+          ),
         ),
       ],
     );
