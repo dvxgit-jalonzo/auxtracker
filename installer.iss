@@ -2,7 +2,7 @@
 
 [Setup]
 AppName=AuxTracker
-AppVersion=1.0.0
+AppVersion=1.0.1
 AppPublisher=Diavox Network Inc.
 AppCopyright=© 2025 Diavox Network Inc. Developed by Jhun Norman Alonzo
 AppPublisherURL=https://www.diavox.net/
@@ -12,6 +12,8 @@ DefaultDirName={autopf}\AuxTracker
 DefaultGroupName=AuxTracker
 OutputBaseFilename=auxtracker-setup
 UninstallDisplayIcon={app}\auxtrack.exe
+ArchitecturesAllowed=x64
+ArchitecturesInstallIn64BitMode=x64
 
 ; Icon shown in the installer and Start Menu
 SetupIconFile=assets\images\icon.ico
@@ -19,9 +21,16 @@ InfoBeforeFile=infobeforefile.txt
 
 [Files]
 ; Copy the compiled Flutter Windows build
-; Added 'dontcopy' or 'nocompression' is NOT needed here as LZMA2 handles it better.
 Source: "build\windows\x64\runner\Release\*"; \
 DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+; Include Visual C++ Runtime DLLs
+Source: "windows\runner\resources\vcruntime140.dll"; \
+DestDir: "{app}"; Flags: ignoreversion
+Source: "windows\runner\resources\vcruntime140_1.dll"; \
+DestDir: "{app}"; Flags: ignoreversion
+Source: "windows\runner\resources\msvcp140.dll"; \
+DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\AuxTracker"; Filename: "{app}\auxtrack.exe"

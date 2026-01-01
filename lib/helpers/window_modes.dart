@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:window_manager/window_manager.dart';
 
 class WindowModes {
-  final Size size = Size(300, 350);
+  final Size size = Size(380, 430);
 
   static Future<void> normal() async {
     await windowManager.ensureInitialized();
@@ -38,7 +38,7 @@ class WindowModes {
       WindowOptions(
         size: WindowModes().size,
         center: false,
-        titleBarStyle: TitleBarStyle.hidden,
+        titleBarStyle: TitleBarStyle.normal,
         windowButtonVisibility: false,
         alwaysOnTop: true,
       ),
@@ -47,8 +47,8 @@ class WindowModes {
         await windowManager.show();
         await windowManager.focus();
         await windowManager.setMaximumSize(WindowModes().size);
-        await windowManager.setSkipTaskbar(true);
-        await windowManager.setMinimizable(false);
+        await windowManager.setSkipTaskbar(false);
+        await windowManager.setMinimizable(true);
         await windowManager.setMaximizable(false);
         await windowManager.setResizable(false);
         await windowManager.setPreventClose(true);

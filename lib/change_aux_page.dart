@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
 
+import 'package:auxtrack/components/date_time_bar.dart';
 import 'package:auxtrack/helpers/custom_notification.dart';
 import 'package:auxtrack/helpers/periodic_capture_controller.dart';
 import 'package:auxtrack/helpers/websocket_service.dart';
@@ -13,6 +14,7 @@ import 'package:window_manager/window_manager.dart';
 
 import 'helpers/api_controller.dart';
 import 'helpers/idle_service.dart';
+import 'helpers/prototype_logger.dart';
 import 'helpers/recording_service.dart';
 import 'main.dart';
 import 'models/auxiliary.dart';
@@ -98,246 +100,246 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: DragToMoveArea(
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Colors.green.shade700, Colors.deepPurple.shade900],
-            ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Colors.green.shade700, Colors.deepPurple.shade900],
           ),
-          child: SafeArea(
-            child: Stack(
-              // Use a Stack to overlay the status indicator at the top
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(15.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      FutureBuilder<String>(
-                        future: _name,
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return Center(
-                              child: Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Colors.lightBlue.withValues(alpha: 0.2),
-                                      Colors.white.withValues(alpha: 0.08),
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.2),
-                                    width: 1.5,
-                                  ),
-                                ),
-                                child: Center(
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.lightGreenAccent.withValues(
-                                      alpha: 0.7,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                          }
-
-                          return Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Colors.lightBlue.withValues(alpha: 0.2),
-                                  Colors.white.withValues(alpha: 0.08),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                width: 1.5,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.4),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // Name section
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(6),
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            Colors.yellow.shade600,
-                                            Colors.amber.shade400,
-                                          ],
-                                        ),
-                                        shape: BoxShape.circle,
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.yellow.withValues(
-                                              alpha: 0.5,
-                                            ),
-                                            blurRadius: 8,
-                                            spreadRadius: 1,
-                                          ),
-                                        ],
-                                      ),
-                                      child: Icon(
-                                        Icons.person,
-                                        size: 16,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Text(
-                                        snapshot.data?.toUpperCase() ??
-                                            "UNKNOWN",
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                          letterSpacing: 1.2,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                        maxLines: 1,
-                                      ),
-                                    ),
+        ),
+        child: SafeArea(
+          child: Stack(
+            // Use a Stack to overlay the status indicator at the top
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(15.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    FutureBuilder<String>(
+                      future: _name,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return Center(
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.lightBlue.withValues(alpha: 0.2),
+                                    Colors.white.withValues(alpha: 0.08),
                                   ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
                                 ),
-
-                                const SizedBox(height: 10),
-
-                                // Status and Timer section
-                                Row(
-                                  mainAxisAlignment:
-                                  MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Flexible(
-                                      child: Text(
-                                        _isIdle
-                                            ? "Inactive"
-                                            : (_stateAux ?? "NOT LOGGED"),
-                                        style: TextStyle(
-                                          color: _isIdle
-                                              ? Colors.yellow
-                                              : Colors.lightGreenAccent,
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          letterSpacing: 0.8,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.1,
-                                        ),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: Colors.white.withValues(
-                                            alpha: 0.2,
-                                          ),
-                                          width: 1,
-                                        ),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            Icons.timer_sharp,
-                                            size: 16,
-                                            color: Colors.lightGreenAccent,
-                                          ),
-                                          const SizedBox(width: 5),
-                                          Text(
-                                            _formattedTime,
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
-                                              letterSpacing: 0.4,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                  width: 1.5,
                                 ),
-                              ],
+                              ),
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.lightGreenAccent.withValues(
+                                    alpha: 0.7,
+                                  ),
+                                ),
+                              ),
                             ),
                           );
-                        },
-                      ),
-                      const SizedBox(height: 8),
+                        }
 
-                      if (_tabController != null)
-                        Container(
-                          height: 42,
+                        return Container(
+                          padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(10),
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.lightBlue.withValues(alpha: 0.2),
+                                Colors.white.withValues(alpha: 0.08),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.15),
+                              color: Colors.white.withValues(alpha: 0.2),
+                              width: 1.5,
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.25),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
+                                color: Colors.black.withValues(alpha: 0.4),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
                               ),
                             ],
                           ),
-                          child: Stack(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(10),
-                                child: Listener(
-                                  onPointerSignal: (event) {
-                                    if (event is PointerScrollEvent) {
-                                      // Handle mouse wheel scroll - switches tabs
-                                      final scrollOffset = event.scrollDelta.dy;
+                              // Name section
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          Colors.yellow.shade600,
+                                          Colors.amber.shade400,
+                                        ],
+                                      ),
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.yellow.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                          blurRadius: 8,
+                                          spreadRadius: 1,
+                                        ),
+                                      ],
+                                    ),
+                                    child: Icon(
+                                      Icons.person,
+                                      size: 16,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      snapshot.data?.toUpperCase() ?? "UNKNOWN",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        letterSpacing: 1.2,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                    ),
+                                  ),
+                                ],
+                              ),
 
-                                      if (scrollOffset > 0 &&
-                                          _tabController!.index <
-                                              _tabController!.length - 1) {
-                                        _tabController!.animateTo(
-                                          _tabController!.index + 1,
-                                        );
-                                      } else if (scrollOffset < 0 &&
-                                          _tabController!.index > 0) {
-                                        _tabController!.animateTo(
-                                          _tabController!.index - 1,
-                                        );
-                                      }
+                              const SizedBox(height: 10),
+
+                              // Status and Timer section
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      _isIdle
+                                          ? "Inactive"
+                                          : (_stateAux ?? "NOT LOGGED"),
+                                      style: TextStyle(
+                                        color: _isIdle
+                                            ? Colors.yellow
+                                            : Colors.lightGreenAccent,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        letterSpacing: 0.8,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.1,
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.2,
+                                        ),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.timer_sharp,
+                                          size: 16,
+                                          color: Colors.lightGreenAccent,
+                                        ),
+                                        const SizedBox(width: 5),
+                                        Text(
+                                          _formattedTime,
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: 0.4,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    if (_tabController != null)
+                      Container(
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.15),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.25),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Listener(
+                                onPointerSignal: (event) {
+                                  if (event is PointerScrollEvent) {
+                                    // Handle mouse wheel scroll - switches tabs
+                                    final scrollOffset = event.scrollDelta.dy;
+
+                                    if (scrollOffset > 0 &&
+                                        _tabController!.index <
+                                            _tabController!.length - 1) {
+                                      _tabController!.animateTo(
+                                        _tabController!.index + 1,
+                                      );
+                                    } else if (scrollOffset < 0 &&
+                                        _tabController!.index > 0) {
+                                      _tabController!.animateTo(
+                                        _tabController!.index - 1,
+                                      );
                                     }
-                                  },
-                                  child: MouseRegion(
-                                    cursor: SystemMouseCursors.click,
+                                  }
+                                },
+                                child: MouseRegion(
+                                  cursor: SystemMouseCursors.click,
+                                  child: Tooltip(
+                                    message: "Scroll to switch tabs",
+                                    preferBelow: false,
                                     child: TabBar(
                                       controller: _tabController,
                                       isScrollable: true,
@@ -360,18 +362,16 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                         borderRadius: BorderRadius.circular(8),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.greenAccent.withValues(
-                                              alpha: 0.3,
-                                            ),
+                                            color: Colors.greenAccent
+                                                .withValues(alpha: 0.3),
                                             blurRadius: 6,
                                             offset: const Offset(0, 2),
                                           ),
                                         ],
                                       ),
                                       labelColor: Colors.white,
-                                      unselectedLabelColor: Colors.white.withValues(
-                                        alpha: 0.5,
-                                      ),
+                                      unselectedLabelColor: Colors.white
+                                          .withValues(alpha: 0.5),
                                       labelStyle: const TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
@@ -383,8 +383,8 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                         letterSpacing: 0.2,
                                       ),
                                       tabs: _auxiliariesByCategory.keys.map((
-                                          category,
-                                          ) {
+                                        category,
+                                      ) {
                                         return Tab(
                                           child: Container(
                                             padding: const EdgeInsets.symmetric(
@@ -409,18 +409,25 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                   ),
                                 ),
                               ),
-                              // Left arrow indicator
-                              if (_tabController!.index > 0)
-                                Positioned(
-                                  left: 0,
-                                  top: 0,
-                                  bottom: 0,
+                            ),
+                            // Left arrow indicator (clickable)
+                            if (_tabController!.index > 0)
+                              Positioned(
+                                left: 0,
+                                top: 0,
+                                bottom: 0,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    _tabController!.animateTo(
+                                      _tabController!.index - 1,
+                                    );
+                                  },
                                   child: Container(
                                     width: 30,
                                     decoration: BoxDecoration(
                                       gradient: LinearGradient(
                                         colors: [
-                                          Colors.black.withValues(alpha: 0.6),
+                                          Colors.black.withOpacity(0.6),
                                           Colors.transparent,
                                         ],
                                         begin: Alignment.centerLeft,
@@ -433,24 +440,33 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                     ),
                                     child: Icon(
                                       Icons.chevron_left,
-                                      color: Colors.white.withValues(alpha: 0.8),
+                                      color: Colors.white.withOpacity(0.8),
                                       size: 20,
                                     ),
                                   ),
                                 ),
-                              // Right arrow indicator
-                              if (_tabController!.index < _tabController!.length - 1)
-                                Positioned(
-                                  right: 0,
-                                  top: 0,
-                                  bottom: 0,
+                              ),
+
+                            // Right arrow indicator (clickable)
+                            if (_tabController!.index <
+                                _tabController!.length - 1)
+                              Positioned(
+                                right: 0,
+                                top: 0,
+                                bottom: 0,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    _tabController!.animateTo(
+                                      _tabController!.index + 1,
+                                    );
+                                  },
                                   child: Container(
                                     width: 30,
                                     decoration: BoxDecoration(
                                       gradient: LinearGradient(
                                         colors: [
                                           Colors.transparent,
-                                          Colors.black.withValues(alpha: 0.6),
+                                          Colors.black.withOpacity(0.6),
                                         ],
                                         begin: Alignment.centerLeft,
                                         end: Alignment.centerRight,
@@ -462,113 +478,115 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                     ),
                                     child: Icon(
                                       Icons.chevron_right,
-                                      color: Colors.white.withValues(alpha: 0.8),
+                                      color: Colors.white.withOpacity(0.8),
                                       size: 20,
                                     ),
                                   ),
                                 ),
-                            ],
-                          ),
-                        ),
-
-                      const SizedBox(height: 8),
-                      Expanded(
-                        child: _tabController == null
-                            ? Center(
-                          child: Text(
-                            'No auxiliaries available',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.7),
-                              fontSize: 12,
-                            ),
-                          ),
-                        )
-                            : Container(
-                          padding: EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: Colors.purple.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.2),
-                            ),
-                          ),
-                          child: TabBarView(
-                            controller: _tabController,
-                            children: _auxiliariesByCategory.entries
-                                .map(
-                                  (entry) =>
-                                  _buildAuxiliaryList(entry.value),
-                            )
-                                .toList(),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                if (_hasPersonalBreakRequest) ...[
-                  Positioned(
-                    bottom: 10,
-                    left: 12,
-                    right: 12,
-                    child: Material(
-                      elevation: 6,
-                      borderRadius: BorderRadius.circular(14),
-                      color: Colors.blueGrey.shade900,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.timelapse_rounded,
-                              color: Colors.white70,
-                              size: 20,
-                            ),
-
-                            const SizedBox(width: 12),
-
-                            const Expanded(
-                              child: Text(
-                                "Break request in progress",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                ),
                               ),
-                            ),
-
-                            TextButton(
-                              onPressed: () async {
-                                final status = await ApiController.instance
-                                    .deletePersonalBreak();
-                                if (status) {
-                                  setState(() {
-                                    _hasPersonalBreakRequest = false;
-                                  });
-                                }
-                              },
-                              child: const Text(
-                                "CANCEL",
-                                style: TextStyle(
-                                  color: Colors.redAccent,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
                           ],
                         ),
                       ),
+
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: _tabController == null
+                          ? Center(
+                              child: Text(
+                                'No auxiliaries available',
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            )
+                          : Container(
+                              padding: EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.purple.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                ),
+                              ),
+                              child: TabBarView(
+                                controller: _tabController,
+                                children: _auxiliariesByCategory.entries
+                                    .map(
+                                      (entry) =>
+                                          _buildAuxiliaryList(entry.value),
+                                    )
+                                    .toList(),
+                              ),
+                            ),
+                    ),
+                    const SizedBox(height: 8),
+                    const DateTimeBar(),
+                  ],
+                ),
+              ),
+
+              if (_hasPersonalBreakRequest) ...[
+                Positioned(
+                  bottom: 10,
+                  left: 12,
+                  right: 12,
+                  child: Material(
+                    elevation: 6,
+                    borderRadius: BorderRadius.circular(14),
+                    color: Colors.blueGrey.shade900,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.timelapse_rounded,
+                            color: Colors.white70,
+                            size: 20,
+                          ),
+
+                          const SizedBox(width: 12),
+
+                          const Expanded(
+                            child: Text(
+                              "Break request in progress",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+
+                          TextButton(
+                            onPressed: () async {
+                              final status = await ApiController.instance
+                                  .deletePersonalBreak();
+                              if (status) {
+                                setState(() {
+                                  _hasPersonalBreakRequest = false;
+                                });
+                              }
+                            },
+                            child: const Text(
+                              "CANCEL",
+                              style: TextStyle(
+                                color: Colors.redAccent,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ],
+                ),
               ],
-            ),
+            ],
           ),
         ),
       ),
@@ -609,9 +627,9 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                       colors: isSelected
                           ? [Colors.lightBlue.shade600, Colors.indigo.shade800]
                           : [
-                        Colors.white.withValues(alpha: 0.15),
-                        Colors.white.withValues(alpha: 0.08),
-                      ],
+                              Colors.white.withValues(alpha: 0.15),
+                              Colors.white.withValues(alpha: 0.08),
+                            ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -624,19 +642,19 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                     ),
                     boxShadow: isSelected
                         ? [
-                      BoxShadow(
-                        color: Colors.cyanAccent.withValues(alpha: 0.3),
-                        blurRadius: 10,
-                        spreadRadius: 2,
-                      ),
-                    ]
+                            BoxShadow(
+                              color: Colors.cyanAccent.withValues(alpha: 0.3),
+                              blurRadius: 10,
+                              spreadRadius: 2,
+                            ),
+                          ]
                         : [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.3),
-                        blurRadius: 3,
-                        offset: const Offset(1, 1),
-                      ),
-                    ],
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.3),
+                              blurRadius: 3,
+                              offset: const Offset(1, 1),
+                            ),
+                          ],
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -684,7 +702,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     );
   }
 
-
   Future<String> _getUsername() async {
     final userInfo = await ApiController.instance.loadUserInfo();
     return userInfo!['name'];
@@ -710,7 +727,10 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     try {
       // Initialize with disabled state by default
       await IdleService.instance.initialize(
-        const IdleServiceConfig(enabled: false),
+        const IdleServiceConfig(
+          enabled: false,
+          idleThreshold: Duration(minutes: 1),
+        ),
       );
       _subscribeToIdleStream();
       print('✅ IdleService initialized (disabled by default)');
@@ -782,6 +802,13 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     });
     CustomNotification.info(response['message']);
     if (response['code'] != "DUPLICATE_AUX") _startTimer();
+    final userInfo = await ApiController.instance.loadUserInfo();
+    if (userInfo != null) {
+      final logger = PrototypeLogger(
+        logFolder: userInfo['username'].toString().toLowerCase(),
+      );
+      logger.trail("[${response['code']}] auxiliary set to $sub.");
+    }
   }
 
   Future<void> _createEmployeeLogTimeIn() async {
@@ -789,6 +816,13 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     final response = await ApiController.instance.createEmployeeLog(sub);
 
     if (response['code'] == "NO_ACTIVE_SCHEDULE") {
+      final userInfo = await ApiController.instance.loadUserInfo();
+      if (userInfo != null) {
+        final logger = PrototypeLogger(
+          logFolder: userInfo['username'].toString().toLowerCase(),
+        );
+        logger.trail("[${response['code']}] force logout.");
+      }
       CustomNotification.warning(response['message']);
       await Future.delayed(Duration(seconds: 3));
       await ApiController.instance.forceLogout();
@@ -797,6 +831,13 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
 
     if (response['code'] == "ALREADY_TIMED_IN" ||
         response['code'] == "DUPLICATE_AUX") {
+      final userInfo = await ApiController.instance.loadUserInfo();
+      if (userInfo != null) {
+        final logger = PrototypeLogger(
+          logFolder: userInfo['username'].toString().toLowerCase(),
+        );
+        logger.trail("[${response['code']}] ${response['message']}");
+      }
       await settingLastLog();
       return;
     } else {
@@ -804,6 +845,13 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       setState(() {
         _stateAux = sub;
       });
+      final userInfo = await ApiController.instance.loadUserInfo();
+      if (userInfo != null) {
+        final logger = PrototypeLogger(
+          logFolder: userInfo['username'].toString().toLowerCase(),
+        );
+        logger.trail("[${response['code']}] auxiliary set to $sub.");
+      }
       CustomNotification.info(response['message']);
     }
   }
@@ -871,6 +919,12 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
         throw Exception('change aux User info not found. Please login first.');
       }
       final result = await ApiController.instance.createEmployeeLog("OFF");
+
+      final logger = PrototypeLogger(
+        logFolder: userInfo['username'].toString().toLowerCase(),
+      );
+      logger.trail("[${result['code']}] auxiliary set to OFF.");
+
       CustomNotification.info(result['message']);
       await ApiController.instance.logout();
       await WindowModes.normal();
@@ -1434,9 +1488,23 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
             });
             CustomNotification.info(response['message']);
             if (response['code'] == "NO_ACTIVE_SCHEDULE") {
+              final userInfo = await ApiController.instance.loadUserInfo();
+              if (userInfo != null) {
+                final logger = PrototypeLogger(
+                  logFolder: userInfo['username'].toString().toLowerCase(),
+                );
+                logger.trail("[${response['code']}] force logout.");
+              }
               await ApiController.instance.forceLogout();
               return;
             }
+
+            final logger = PrototypeLogger(
+              logFolder: userInfo['username'].toString().toLowerCase(),
+            );
+            logger.trail(
+              "[${response['code']}] auxiliary set to ${_selectedAux!['sub']}.",
+            );
 
             if (response['code'] != "DUPLICATE_AUX") _startTimer();
           } else {
@@ -1481,12 +1549,26 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       });
       CustomNotification.info(response['message']);
       if (response['code'] == "NO_ACTIVE_SCHEDULE") {
+        final userInfo = await ApiController.instance.loadUserInfo();
+        if (userInfo != null) {
+          final logger = PrototypeLogger(
+            logFolder: userInfo['username'].toString().toLowerCase(),
+          );
+          logger.trail("[${response['code']}] force logout.");
+        }
         await ApiController.instance.forceLogout();
         return;
       }
       if (response['code'] != "DUPLICATE_AUX") {
         _startTimer();
       }
+
+      final logger = PrototypeLogger(
+        logFolder: userInfo['username'].toString().toLowerCase(),
+      );
+      logger.trail(
+        "[${response['code']}] auxiliary set to ${_selectedAux!['sub']}.",
+      );
     }
   }
 
@@ -1501,10 +1583,15 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       CustomNotification.info("Setting aux to $lastLog");
     }
     setState(() {
-      _stateAux = response['aux_sub'];
+      _stateAux = lastLog;
     });
+    final userInfo = await ApiController.instance.loadUserInfo();
+    if (userInfo != null) {
+      final logger = PrototypeLogger(
+        logFolder: userInfo['username'].toString().toLowerCase(),
+      );
+      logger.trail("[${response['code']}] auxiliary set to $lastLog.");
+    }
     _startTimer(Duration(seconds: response['elapsedTime']));
   }
-
-
 }

@@ -188,6 +188,7 @@ class ApiController {
         body: jsonEncode({"employee_id": employeeId, "sub": sub}),
       );
       final result = jsonDecode(response.body);
+
       print("CreateEmployeeLogResult : $result");
       final enabledStates = ["On Shift", "Calling", "SMS", "Lunch OT"];
 
@@ -260,8 +261,11 @@ class ApiController {
 
       // Send GET request
       final response = await http.get(url, headers: headers);
+
       //
-      return jsonDecode(response.body);
+      final result = jsonDecode(response.body);
+
+      return result;
     } catch (e) {
       CustomNotification.error("Error getting last aux");
     }
