@@ -319,6 +319,99 @@ class ApiController {
     }
   }
 
+  Future<bool> deleteOvertime() async {
+    try {
+      final baseUrl = await Configuration.instance.get("baseUrl");
+      final headers = await _headers();
+      final userInfo = await loadUserInfo();
+
+      if (userInfo == null) {
+        print('User info not found.');
+        return false;
+      }
+
+      final employeeId = userInfo['id'];
+      final siteId = userInfo['site_id'];
+      final url = Uri.parse('$baseUrl/delete-overtime');
+
+      Map<String, dynamic> params = {
+        "site_id": siteId,
+        "employee_id": employeeId,
+      };
+
+      final response = await http.post(
+        url,
+        headers: headers,
+        body: jsonEncode(params),
+      );
+
+      if (response.statusCode == 200) {
+        // I-decode ang response (true/false na galing sa Laravel)
+        final bool isDeleted = jsonDecode(response.body);
+
+        if (isDeleted) {
+          print('Overtime record actually removed from DB.');
+          return true;
+        } else {
+          print('No pending overtime found to delete.');
+          return false;
+        }
+      } else {
+        print('Server Error: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      CustomNotification.error("Error deleting overtime");
+      await forceLogout();
+      return false;
+    }
+  }
+
+  Future<bool> createOvertimeRequest(String sub) async {
+    try {
+      final baseUrl = await Configuration.instance.get("baseUrl");
+      final headers = await _headers();
+      final userInfo = await loadUserInfo();
+
+      if (userInfo == null) {
+        print('Error: User info not found.');
+        return false;
+      }
+
+      final employeeId = userInfo['id'];
+      final url = Uri.parse('$baseUrl/create-overtime');
+
+      Map<String, dynamic> params = {"employee_id": employeeId, "sub": sub};
+
+      final response = await http.post(
+        url,
+        headers: headers,
+        body: jsonEncode(params),
+      );
+
+      if (response.statusCode == 200) {
+        final bool isCreated = jsonDecode(response.body);
+
+        if (isCreated) {
+          print('Overtime created successfully.');
+          return true;
+        } else {
+          print(
+            'Request denied: Employee might already have a pending overtime.',
+          );
+          return false;
+        }
+      } else {
+        print('Failed to connect. Status: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      CustomNotification.error("Error creating personal break");
+      await forceLogout();
+      return false;
+    }
+  }
+
   Future<bool> createPersonalBreak(String reason) async {
     try {
       final baseUrl = await Configuration.instance.get("baseUrl");

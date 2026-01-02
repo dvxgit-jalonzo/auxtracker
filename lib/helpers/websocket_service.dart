@@ -72,6 +72,13 @@ class WebSocketService {
       _channel!.sink.add(
         json.encode({
           "event": "pusher:subscribe",
+          "data": {"channel": "overtimeResponseEvent.$employeeId"},
+        }),
+      );
+
+      _channel!.sink.add(
+        json.encode({
+          "event": "pusher:subscribe",
           "data": {"channel": "logoutEmployeeEvent.$employeeId"},
         }),
       );

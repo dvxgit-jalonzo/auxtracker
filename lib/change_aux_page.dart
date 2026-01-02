@@ -45,6 +45,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   StreamSubscription<bool>? _idleSubscription;
   StreamSubscription<IdleServiceConfig>? _configSubscription;
   bool _hasPersonalBreakRequest = false;
+  bool _hasOvertimeRequest = false;
   DateTime? _startTime;
 
   late Future<String> _name;
@@ -66,9 +67,28 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
 
         if (status == "APPROVED") {
           _createEmployeeLogPersonalBreak();
+          setSelectedAux(sub: "Personal Break");
+        } else {
+          setSelectedAux();
         }
         setState(() {
           _hasPersonalBreakRequest = false;
+        });
+      }
+
+      if (message['event'] == "overtimeResponse") {
+        final data = message['data'];
+        final status = data['status'];
+
+        if (status == "APPROVED") {
+          final sub = data['sub'];
+          _createEmployeeLogOvertime(sub);
+          setSelectedAux(sub: sub);
+        } else {
+          setSelectedAux();
+        }
+        setState(() {
+          _hasOvertimeRequest = false;
         });
       }
 
@@ -596,11 +616,91 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                   ),
                 ),
               ],
+              if (_hasOvertimeRequest) ...[
+                Positioned(
+                  bottom: 10,
+                  left: 12,
+                  right: 12,
+                  child: Material(
+                    elevation: 6,
+                    borderRadius: BorderRadius.circular(14),
+                    color: Colors.blueGrey.shade900,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.timelapse_rounded,
+                            color: Colors.white70,
+                            size: 20,
+                          ),
+
+                          const SizedBox(width: 12),
+
+                          const Expanded(
+                            child: Text(
+                              "OT request in progress",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+
+                          TextButton(
+                            onPressed: () async {
+                              final result = await ApiController.instance
+                                  .deleteOvertime();
+                              if (result == true) {
+                                setSelectedAux();
+                                setState(() {
+                                  _hasOvertimeRequest = false;
+                                });
+                              }
+                              return;
+                            },
+                            child: const Text(
+                              "CANCEL",
+                              style: TextStyle(
+                                color: Colors.redAccent,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
       ),
     );
+  }
+
+  Future<void> setSelectedAux({dynamic sub}) async {
+    if (sub == null) {
+      final lastAux = await ApiController.instance.getLatestEmployeeLog();
+      sub = lastAux['aux_sub'];
+    }
+    print(jsonEncode(sub));
+
+    final aux = findAuxiliaryBySub(sub);
+
+    if (aux != null) {
+      setState(() {
+        _selectedAux = {'id': aux.id, 'main': aux.main, 'sub': aux.sub};
+      });
+    } else {
+      print("Auxiliary not found for sub: ${sub['aux_sub']}");
+    }
   }
 
   Widget _buildAuxiliaryList(List<Auxiliary> auxiliaries) {
@@ -818,6 +918,22 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     }
   }
 
+  void _createEmployeeLogOvertime(String sub) async {
+    final response = await ApiController.instance.createEmployeeLog(sub);
+    setState(() {
+      _stateAux = sub;
+    });
+    CustomNotification.info(response['message']);
+    if (response['code'] != "DUPLICATE_AUX") _startTimer();
+    final userInfo = await ApiController.instance.loadUserInfo();
+    if (userInfo != null) {
+      final logger = PrototypeLogger(
+        logFolder: userInfo['username'].toString().toLowerCase(),
+      );
+      logger.trail("[${response['code']}] auxiliary set to $sub.");
+    }
+  }
+
   Future<void> _createEmployeeLogTimeIn() async {
     final sub = "Time In";
     final response = await ApiController.instance.createEmployeeLog(sub);
@@ -949,6 +1065,20 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     }
   }
 
+  Auxiliary? findAuxiliaryBySub(String sub) {
+    try {
+      // Flatten all categories and search
+      return _auxiliariesByCategory.values
+          .expand((list) => list) // Flatten the lists
+          .firstWhere(
+            (aux) => aux.sub == sub,
+            orElse: () => throw Exception('Not found'),
+          );
+    } catch (e) {
+      return null;
+    }
+  }
+
   void _handleAuxSelection(Auxiliary aux) {
     setState(() {
       _selectedAux = {'id': aux.id, 'main': aux.main, 'sub': aux.sub};
@@ -956,167 +1086,23 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     _handleConfirm();
   }
 
-  Future<void> _requestLogout() async {
-    final result = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.all(24),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(18),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.2),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.25),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                width: 300,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Icon container
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.settings_power,
-                        color: Colors.white,
-                        size: 34,
-                      ),
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    // Title
-                    const Text(
-                      'Confirm Selection',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-
-                    const SizedBox(height: 14),
-
-                    // Selected item card
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 12,
-                        horizontal: 14,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.06),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.18),
-                        ),
-                      ),
-                      child: Text(
-                        "OFF",
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 22),
-
-                    Row(
-                      children: [
-                        // Cancel
-                        Expanded(
-                          child: TextButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                            },
-                            style: TextButton.styleFrom(
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                side: BorderSide(
-                                  color: Colors.white.withValues(alpha: 0.4),
-                                ),
-                              ),
-                            ),
-                            child: const Text(
-                              'Cancel',
-                              style: TextStyle(fontSize: 13),
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(width: 12),
-
-                        // Confirm
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () => Navigator.pop(context, true),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue.shade800,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              elevation: 6,
-                            ),
-                            child: const Text(
-                              'Confirm',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-
-    if (result == true) {
-      if (mounted) {
-        _handleLogout();
-      }
-    }
-  }
-
   Future<void> _handleConfirm() async {
     if (_selectedAux == null) return;
+
+    if (_selectedAux!['main'] == "OT") {
+      final result = await ApiController.instance.createOvertimeRequest(
+        _selectedAux!['sub'],
+      );
+
+      if (result == true) {
+        setState(() {
+          _hasOvertimeRequest = true;
+        });
+      } else {
+        CustomNotification.error("Failed to request OT");
+      }
+      return;
+    }
 
     // Handle Personal Break with dialog to get reason
     if (_selectedAux!['sub'] == "Personal Break") {
@@ -1289,8 +1275,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       });
       return; // Exit early for Personal Break
     }
-    if (_selectedAux!['main'] == "OT" ||
-        _selectedAux!['sub'] == "Troubleshooting") {
+    if (_selectedAux!['sub'] == "Troubleshooting") {
       final username = TextEditingController();
       final password = TextEditingController();
 
@@ -1580,6 +1565,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
         "Status: $lastLog. Please update your Aux to continue today's session.",
       );
     } else {
+      setSelectedAux();
       CustomNotification.info("Setting aux to $lastLog");
     }
     setState(() {
