@@ -1,10 +1,6 @@
-import 'dart:async';
 import 'dart:io';
 
-import 'package:auto_updater/auto_updater.dart';
-import 'package:auxtrack/helpers/app_updater_listener.dart';
 import 'package:auxtrack/helpers/custom_notification.dart';
-import 'package:auxtrack/helpers/window_modes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_single_instance/flutter_single_instance.dart';
@@ -13,18 +9,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'app_navigator.dart';
+import 'bootstrap_app.dart';
 import 'change_aux_page.dart';
 import 'helpers/api_controller.dart';
-import 'helpers/configuration.dart';
 import 'helpers/http_overrides.dart';
-
-// bool updateChecker = false;
-final Completer<bool> updateGate = Completer<bool>();
+import 'helpers/window_modes.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize window manager (required for flutter_single_instance)
   await windowManager.ensureInitialized();
 
   if (!await FlutterSingleInstance().isFirstInstance()) {
@@ -38,32 +31,31 @@ void main() async {
     exit(0);
   }
 
-  // Set up focus callback for when another instance tries to open
   FlutterSingleInstance.onFocus = (metadata) async {
     print("Another instance attempted to open");
     await windowManager.show();
     await windowManager.focus();
   };
 
-  // Continue with your existing auto-updater logic
-  autoUpdater.addListener(AppUpdaterListener(updateGate));
-
-  if (Platform.isWindows) {
-    String feedURL = await Configuration.instance.get("updater");
-
-    await autoUpdater.setFeedURL(feedURL);
-    await autoUpdater.setScheduledCheckInterval(3600);
-    await autoUpdater.checkForUpdates(inBackground: true);
-    // updateChecker = true;
-  }
+  // if (Platform.isWindows) {
+  //   String feedURL = await Configuration.instance.get("updater");
+  //
+  //   await autoUpdater.setFeedURL(feedURL);
+  //   await autoUpdater.setScheduledCheckInterval(3600);
+  //
+  //   autoUpdater.addListener(AppUpdaterListener(updateGate));
+  //   await Future.delayed(const Duration(milliseconds: 300));
+  //   await autoUpdater.checkForUpdates(inBackground: true);
+  // }
 
   HttpOverrides.global = MyHttpOverrides();
-  final shouldRunApp = await updateGate.future;
+  // final shouldRunApp = await updateGate.future;
 
-  if (shouldRunApp) {
-    await WindowModes.normal();
-    runApp(const MyApp());
-  }
+  runApp(const BootstrapApp());
+  // if (shouldRunApp) {
+  //   await WindowModes.normal();
+  //   runApp(const MyApp());
+  // }
 }
 
 class MyApp extends StatefulWidget {
@@ -77,6 +69,11 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+    _init();
+  }
+
+  Future<void> _init() async {
+    await WindowModes.normal();
   }
 
   @override
@@ -117,18 +114,7 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
     super.initState();
     _getAppVersion();
     windowManager.addListener(this);
-    // _checkUpdate();
   }
-
-  // Future<void> _checkUpdate() async {
-  //   WidgetsBinding.instance.addPostFrameCallback((_) {
-  //     if (updateChecker == true) {
-  //       CustomNotification.success("Checking for updates has completed.");
-  //     } else {
-  //       CustomNotification.warning("Please reload the app.");
-  //     }
-  //   });
-  // }
 
   void _getAppVersion() async {
     PackageInfo packageInfo = await PackageInfo.fromPlatform();

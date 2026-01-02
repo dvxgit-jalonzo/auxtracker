@@ -31,6 +31,34 @@ class WindowModes {
     );
   }
 
+  static Future<void> boostrap() async {
+    await windowManager.ensureInitialized();
+
+    await windowManager.waitUntilReadyToShow(
+      WindowOptions(
+        size: WindowModes().size,
+        center: false,
+        titleBarStyle: TitleBarStyle.normal,
+        windowButtonVisibility: false,
+        alwaysOnTop: true,
+        skipTaskbar: true,
+        title: "Auxiliary Tracker",
+      ),
+      () async {
+        await windowManager.setAlignment(Alignment.centerRight);
+        await windowManager.show();
+        await windowManager.focus();
+        await windowManager.setMaximumSize(WindowModes().size);
+        await windowManager.setSkipTaskbar(false);
+        await windowManager.setMinimizable(false);
+        await windowManager.setMaximizable(false);
+        await windowManager.setResizable(false);
+        await windowManager.setPreventClose(false);
+        await windowManager.setClosable(true);
+      },
+    );
+  }
+
   static Future<void> restricted() async {
     await windowManager.ensureInitialized();
 
