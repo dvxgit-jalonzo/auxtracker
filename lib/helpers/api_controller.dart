@@ -5,6 +5,7 @@ import 'package:auxtrack/helpers/configuration.dart';
 import 'package:auxtrack/helpers/custom_notification.dart';
 import 'package:auxtrack/helpers/idle_service.dart';
 import 'package:auxtrack/helpers/periodic_capture_controller.dart';
+import 'package:auxtrack/helpers/prototype_logger.dart';
 import 'package:auxtrack/helpers/window_modes.dart';
 import 'package:auxtrack/main.dart';
 import 'package:flutter/material.dart';
@@ -111,6 +112,36 @@ class ApiController {
     }
   }
 
+  Future<void> checkActiveSchedule() async {
+    try {
+      final userInfo = await loadUserInfo();
+      final headers = await _headers();
+      final baseUrl = await Configuration.instance.get("baseUrl");
+      final url = Uri.parse("$baseUrl/check-active-schedule");
+
+      //
+      final response = await http.post(
+        url,
+        headers: headers,
+        body: jsonEncode({'employee_id': userInfo?['id']}),
+      );
+
+      //
+      final result = jsonDecode(response.body);
+
+      final logger = PrototypeLogger(
+        logFolder: userInfo?['username'].toString().toLowerCase(),
+      );
+      logger.trail("[${result['code']}] have a schedule: ${result['message']}");
+
+      if (response.statusCode != 200) {
+        throw Exception(result['message']);
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   /// Login using username and password
   Future<void> login(String username, String password) async {
     try {
@@ -129,6 +160,7 @@ class ApiController {
         await getUserInfo();
         await getAuxiliaries();
         await getReverbAppKey();
+        await checkActiveSchedule();
       } else {
         throw Exception(status['message']);
       }
