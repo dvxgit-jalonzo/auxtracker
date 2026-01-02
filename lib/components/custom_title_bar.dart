@@ -1,3 +1,4 @@
+import 'package:auxtrack/helpers/api_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -12,6 +13,14 @@ class CustomTitleBar extends StatefulWidget {
 
 class _CustomTitleBarState extends State<CustomTitleBar> {
   OverlayEntry? _overlayEntry; // track current overlay
+  bool isMinimizable = false;
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _checkMinimizable();
+  }
 
   void _showMinimizeConfirmation() {
     if (_overlayEntry != null) return; // prevent multiple overlays
@@ -43,7 +52,7 @@ class _CustomTitleBarState extends State<CustomTitleBar> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text(
-                    'Minimizing may forget to log out!',
+                    'Heads up! Minimizing the app may cause you to forget to log out.',
                     style: TextStyle(color: Colors.white, fontSize: 12),
                     textAlign: TextAlign.center,
                   ),
@@ -107,42 +116,58 @@ class _CustomTitleBarState extends State<CustomTitleBar> {
     overlay.insert(_overlayEntry!);
   }
 
+  Future<void> _checkMinimizable() async {
+    final userInfo = await ApiController.instance.loadUserInfo();
+    if (userInfo!['minimizable'] != null) {
+      isMinimizable = userInfo['minimizable'];
+    } else {
+      isMinimizable = false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 30,
-      decoration: BoxDecoration(
-        color: Colors.deepPurple.shade900,
-        gradient: LinearGradient(
-          colors: [Colors.green.shade700, Colors.deepPurple.shade900],
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Drag area
-          Expanded(
-            child: GestureDetector(
-              onPanStart: (details) async {
-                await windowManager.startDragging();
-              },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: widget.titleWidget,
-              ),
+    return Tooltip(
+      message: "Draggable Area",
+      child: GestureDetector(
+        onPanStart: (details) async {
+          await windowManager.startDragging();
+        },
+        onPanUpdate: (details) async {},
+        child: Container(
+          height: 30,
+          decoration: BoxDecoration(
+            color: Colors.deepPurple.shade900,
+            gradient: LinearGradient(
+              colors: [Colors.green.shade700, Colors.deepPurple.shade900],
             ),
           ),
-
-          // Minimize button
-          IconButton(
-            tooltip: "Minimize",
-            iconSize: 20,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
-            icon: const Icon(Icons.remove, color: Colors.white),
-            onPressed: _showMinimizeConfirmation,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Drag area
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: widget.titleWidget,
+                ),
+              ),
+              if (isMinimizable) ...[
+                IconButton(
+                  tooltip: "Minimize",
+                  iconSize: 20,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 30,
+                    minHeight: 30,
+                  ),
+                  icon: const Icon(Icons.remove, color: Colors.white),
+                  onPressed: _showMinimizeConfirmation,
+                ),
+              ],
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

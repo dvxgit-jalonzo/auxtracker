@@ -345,6 +345,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                   cursor: SystemMouseCursors.click,
                                   child: Tooltip(
                                     message: "Scroll to switch tabs",
+                                    showDuration: Duration(seconds: 2),
                                     preferBelow: false,
                                     child: TabBar(
                                       controller: _tabController,
@@ -535,7 +536,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                 right: 0,
                 child: CustomTitleBar(titleWidget: DateTimeBar()),
               ),
-
               if (_hasPersonalBreakRequest) ...[
                 Positioned(
                   bottom: 10,
