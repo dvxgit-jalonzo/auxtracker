@@ -47,6 +47,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   bool _hasPersonalBreakRequest = false;
   bool _hasOvertimeRequest = false;
   DateTime? _startTime;
+  bool _isAnimating = false;
 
   late Future<String> _name;
 
@@ -444,17 +445,37 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                 top: 0,
                                 bottom: 0,
                                 child: GestureDetector(
-                                  onTap: () {
-                                    _tabController!.animateTo(
-                                      _tabController!.index - 1,
-                                    );
-                                  },
+                                  onTap: _isAnimating
+                                      ? null
+                                      : () async {
+                                          if (_tabController!.index > 0 &&
+                                              !_isAnimating) {
+                                            setState(() => _isAnimating = true);
+
+                                            _tabController!.animateTo(
+                                              _tabController!.index - 1,
+                                            );
+
+                                            // Add delay to ensure animation completes
+                                            await Future.delayed(
+                                              const Duration(milliseconds: 300),
+                                            );
+
+                                            if (mounted) {
+                                              setState(
+                                                () => _isAnimating = false,
+                                              );
+                                            }
+                                          }
+                                        },
                                   child: Container(
                                     width: 30,
                                     decoration: BoxDecoration(
                                       gradient: LinearGradient(
                                         colors: [
-                                          Colors.black.withOpacity(0.6),
+                                          Colors.black.withOpacity(
+                                            _isAnimating ? 0.3 : 0.6,
+                                          ),
                                           Colors.transparent,
                                         ],
                                         begin: Alignment.centerLeft,
@@ -467,14 +488,16 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                     ),
                                     child: Icon(
                                       Icons.chevron_left,
-                                      color: Colors.white.withOpacity(0.8),
+                                      color: Colors.white.withOpacity(
+                                        _isAnimating ? 0.4 : 0.8,
+                                      ),
                                       size: 20,
                                     ),
                                   ),
                                 ),
                               ),
 
-                            // Right arrow indicator (clickable)
+                            // Right arrow
                             if (_tabController!.index <
                                 _tabController!.length - 1)
                               Positioned(
@@ -482,18 +505,39 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                 top: 0,
                                 bottom: 0,
                                 child: GestureDetector(
-                                  onTap: () {
-                                    _tabController!.animateTo(
-                                      _tabController!.index + 1,
-                                    );
-                                  },
+                                  onTap: _isAnimating
+                                      ? null
+                                      : () async {
+                                          if (_tabController!.index <
+                                                  _tabController!.length - 1 &&
+                                              !_isAnimating) {
+                                            setState(() => _isAnimating = true);
+
+                                            _tabController!.animateTo(
+                                              _tabController!.index + 1,
+                                            );
+
+                                            // Add delay to ensure animation completes
+                                            await Future.delayed(
+                                              const Duration(milliseconds: 300),
+                                            );
+
+                                            if (mounted) {
+                                              setState(
+                                                () => _isAnimating = false,
+                                              );
+                                            }
+                                          }
+                                        },
                                   child: Container(
                                     width: 30,
                                     decoration: BoxDecoration(
                                       gradient: LinearGradient(
                                         colors: [
                                           Colors.transparent,
-                                          Colors.black.withOpacity(0.6),
+                                          Colors.black.withOpacity(
+                                            _isAnimating ? 0.3 : 0.6,
+                                          ),
                                         ],
                                         begin: Alignment.centerLeft,
                                         end: Alignment.centerRight,
@@ -505,7 +549,9 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                     ),
                                     child: Icon(
                                       Icons.chevron_right,
-                                      color: Colors.white.withOpacity(0.8),
+                                      color: Colors.white.withOpacity(
+                                        _isAnimating ? 0.4 : 0.8,
+                                      ),
                                       size: 20,
                                     ),
                                   ),
