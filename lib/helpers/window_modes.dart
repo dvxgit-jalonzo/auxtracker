@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:window_manager/window_manager.dart';
 
 class WindowModes {
-  final Size size = Size(380, 430);
+  final Size size = Size(300, 340);
 
   static Future<void> normal() async {
     await windowManager.ensureInitialized();
@@ -31,7 +31,7 @@ class WindowModes {
     );
   }
 
-  static Future<void> restricted() async {
+  static Future<void> boostrap() async {
     await windowManager.ensureInitialized();
 
     await windowManager.waitUntilReadyToShow(
@@ -41,6 +41,36 @@ class WindowModes {
         titleBarStyle: TitleBarStyle.normal,
         windowButtonVisibility: false,
         alwaysOnTop: true,
+        skipTaskbar: true,
+        title: "Auxiliary Tracker",
+      ),
+      () async {
+        await windowManager.setAlignment(Alignment.centerRight);
+        await windowManager.show();
+        await windowManager.focus();
+        await windowManager.setMaximumSize(WindowModes().size);
+        await windowManager.setSkipTaskbar(false);
+        await windowManager.setMinimizable(false);
+        await windowManager.setMaximizable(false);
+        await windowManager.setResizable(false);
+        await windowManager.setPreventClose(false);
+        await windowManager.setClosable(true);
+      },
+    );
+  }
+
+  static Future<void> restricted() async {
+    await windowManager.ensureInitialized();
+
+    await windowManager.waitUntilReadyToShow(
+      WindowOptions(
+        size: WindowModes().size,
+        center: false,
+        titleBarStyle: TitleBarStyle.hidden,
+        windowButtonVisibility: false,
+        alwaysOnTop: true,
+        skipTaskbar: false,
+        title: "Auxiliary Tracker",
       ),
       () async {
         await windowManager.setAlignment(Alignment.centerRight);

@@ -5,6 +5,7 @@ import 'package:auxtrack/helpers/configuration.dart';
 import 'package:auxtrack/helpers/custom_notification.dart';
 import 'package:auxtrack/helpers/idle_service.dart';
 import 'package:auxtrack/helpers/periodic_capture_controller.dart';
+import 'package:auxtrack/helpers/prototype_logger.dart';
 import 'package:auxtrack/helpers/window_modes.dart';
 import 'package:auxtrack/main.dart';
 import 'package:flutter/material.dart';
@@ -111,6 +112,36 @@ class ApiController {
     }
   }
 
+  Future<void> checkActiveSchedule() async {
+    try {
+      final userInfo = await loadUserInfo();
+      final headers = await _headers();
+      final baseUrl = await Configuration.instance.get("baseUrl");
+      final url = Uri.parse("$baseUrl/check-active-schedule");
+
+      //
+      final response = await http.post(
+        url,
+        headers: headers,
+        body: jsonEncode({'employee_id': userInfo?['id']}),
+      );
+
+      //
+      final result = jsonDecode(response.body);
+
+      final logger = PrototypeLogger(
+        logFolder: userInfo?['username'].toString().toLowerCase(),
+      );
+      logger.trail("[${result['code']}] have a schedule: ${result['message']}");
+
+      if (response.statusCode != 200) {
+        throw Exception(result['message']);
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   /// Login using username and password
   Future<void> login(String username, String password) async {
     try {
@@ -129,6 +160,7 @@ class ApiController {
         await getUserInfo();
         await getAuxiliaries();
         await getReverbAppKey();
+        await checkActiveSchedule();
       } else {
         throw Exception(status['message']);
       }
@@ -314,6 +346,99 @@ class ApiController {
       }
     } catch (e) {
       CustomNotification.error("Error deleting personal break");
+      await forceLogout();
+      return false;
+    }
+  }
+
+  Future<bool> deleteOvertime() async {
+    try {
+      final baseUrl = await Configuration.instance.get("baseUrl");
+      final headers = await _headers();
+      final userInfo = await loadUserInfo();
+
+      if (userInfo == null) {
+        print('User info not found.');
+        return false;
+      }
+
+      final employeeId = userInfo['id'];
+      final siteId = userInfo['site_id'];
+      final url = Uri.parse('$baseUrl/delete-overtime');
+
+      Map<String, dynamic> params = {
+        "site_id": siteId,
+        "employee_id": employeeId,
+      };
+
+      final response = await http.post(
+        url,
+        headers: headers,
+        body: jsonEncode(params),
+      );
+
+      if (response.statusCode == 200) {
+        // I-decode ang response (true/false na galing sa Laravel)
+        final bool isDeleted = jsonDecode(response.body);
+
+        if (isDeleted) {
+          print('Overtime record actually removed from DB.');
+          return true;
+        } else {
+          print('No pending overtime found to delete.');
+          return false;
+        }
+      } else {
+        print('Server Error: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      CustomNotification.error("Error deleting overtime");
+      await forceLogout();
+      return false;
+    }
+  }
+
+  Future<bool> createOvertimeRequest(String sub) async {
+    try {
+      final baseUrl = await Configuration.instance.get("baseUrl");
+      final headers = await _headers();
+      final userInfo = await loadUserInfo();
+
+      if (userInfo == null) {
+        print('Error: User info not found.');
+        return false;
+      }
+
+      final employeeId = userInfo['id'];
+      final url = Uri.parse('$baseUrl/create-overtime');
+
+      Map<String, dynamic> params = {"employee_id": employeeId, "sub": sub};
+
+      final response = await http.post(
+        url,
+        headers: headers,
+        body: jsonEncode(params),
+      );
+
+      if (response.statusCode == 200) {
+        final bool isCreated = jsonDecode(response.body);
+
+        if (isCreated) {
+          print('Overtime created successfully.');
+          return true;
+        } else {
+          print(
+            'Request denied: Employee might already have a pending overtime.',
+          );
+          return false;
+        }
+      } else {
+        print('Failed to connect. Status: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      CustomNotification.error("Error creating personal break");
       await forceLogout();
       return false;
     }
