@@ -2,7 +2,7 @@
 
 [Setup]
 AppName=AuxTracker
-AppVersion=1.0.5
+AppVersion=1.0.6
 AppPublisher=Diavox Network Inc.
 AppCopyright=© 2025 Diavox Network Inc. Developed by Jhun Norman Alonzo
 AppPublisherURL=https://www.diavox.net/
