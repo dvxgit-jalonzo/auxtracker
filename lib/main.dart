@@ -36,26 +36,8 @@ void main() async {
     await windowManager.show();
     await windowManager.focus();
   };
-
-  // if (Platform.isWindows) {
-  //   String feedURL = await Configuration.instance.get("updater");
-  //
-  //   await autoUpdater.setFeedURL(feedURL);
-  //   await autoUpdater.setScheduledCheckInterval(3600);
-  //
-  //   autoUpdater.addListener(AppUpdaterListener(updateGate));
-  //   await Future.delayed(const Duration(milliseconds: 300));
-  //   await autoUpdater.checkForUpdates(inBackground: true);
-  // }
-
   HttpOverrides.global = MyHttpOverrides();
-  // final shouldRunApp = await updateGate.future;
-
   runApp(const BootstrapApp());
-  // if (shouldRunApp) {
-  //   await WindowModes.normal();
-  //   runApp(const MyApp());
-  // }
 }
 
 class MyApp extends StatefulWidget {

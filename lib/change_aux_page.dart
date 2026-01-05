@@ -120,6 +120,21 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   }
 
   @override
+  void onWindowMinimize() async {
+    bool isMinimizable;
+    final userInfo = await ApiController.instance.loadUserInfo();
+    if (userInfo!['minimizable'] != null) {
+      isMinimizable = userInfo['minimizable'];
+    } else {
+      isMinimizable = false;
+    }
+    print(isMinimizable);
+    if (!isMinimizable) {
+      await windowManager.restore();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(

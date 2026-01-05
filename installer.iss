@@ -19,6 +19,8 @@ ArchitecturesInstallIn64BitMode=x64
 SetupIconFile=assets\images\icon.ico
 InfoBeforeFile=infobeforefile.txt
 
+AppMutex=AuxTrackerSingleInstanceMutex
+
 [Files]
 ; Copy the compiled Flutter Windows build
 Source: "build\windows\x64\runner\Release\*"; \
