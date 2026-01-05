@@ -14,7 +14,7 @@ class CustomNotification {
     required NotificationType type,
     Duration duration = const Duration(seconds: 3),
     String? title,
-    bool autoDismiss = true, // Changed default to true
+    bool autoDismiss = true,
   }) {
     final overlay = _overlay;
     final context = _context;
@@ -37,7 +37,7 @@ class CustomNotification {
         width: notifWidth,
         duration: duration,
         title: title,
-        autoDismiss: autoDismiss, // Pass the parameter
+        autoDismiss: autoDismiss,
         onDismiss: () {
           _currentOverlay?.remove();
           _currentOverlay = null;
@@ -46,6 +46,110 @@ class CustomNotification {
     );
 
     overlay.insert(_currentOverlay!);
+  }
+
+  /// Shows notification based on Laravel HTTP status code
+  ///
+  /// Usage:
+  /// ```dart
+  /// CustomNotification.fromHttpCode(
+  ///   'Operation completed',
+  ///   httpCode: 200,
+  ///   title: 'Success',
+  /// );
+  /// ```
+  static void fromHttpCode(
+    String message, {
+    int httpCode = 200,
+    String? title,
+  }) {
+    final notifType = _getNotificationTypeFromHttpCode(httpCode);
+    final defaultTitle = _getDefaultTitleFromHttpCode(httpCode);
+    final autoDismiss = _shouldAutoDismiss(httpCode);
+
+    show(
+      message: message,
+      type: notifType,
+      title: title ?? defaultTitle,
+      autoDismiss: autoDismiss,
+    );
+  }
+
+  /// Determines notification type based on HTTP status code
+  static NotificationType _getNotificationTypeFromHttpCode(int code) {
+    if (code >= 200 && code < 300) {
+      // 2xx: Success
+      return NotificationType.success;
+    } else if (code >= 300 && code < 400) {
+      // 3xx: Redirection (treat as info)
+      return NotificationType.info;
+    } else if (code >= 400 && code < 500) {
+      // 4xx: Client errors (warnings)
+      return NotificationType.warning;
+    } else if (code >= 500) {
+      // 5xx: Server errors
+      return NotificationType.error;
+    } else {
+      // 1xx: Informational
+      return NotificationType.info;
+    }
+  }
+
+  /// Gets default title based on HTTP status code
+  static String _getDefaultTitleFromHttpCode(int code) {
+    // Common Laravel HTTP status codes
+    switch (code) {
+      // 2xx Success
+      case 200:
+        return 'Success';
+      case 201:
+        return 'Created';
+      case 204:
+        return 'No Content';
+
+      // 3xx Redirection
+      case 301:
+      case 302:
+        return 'Redirected';
+
+      // 4xx Client Errors
+      case 400:
+        return 'Bad Request';
+      case 401:
+        return 'Unauthorized';
+      case 403:
+        return 'Forbidden';
+      case 404:
+        return 'Not Found';
+      case 422:
+        return 'Validation Error';
+      case 429:
+        return 'Too Many Requests';
+
+      // 5xx Server Errors
+      case 500:
+        return 'Server Error';
+      case 502:
+        return 'Bad Gateway';
+      case 503:
+        return 'Service Unavailable';
+
+      default:
+        if (code >= 200 && code < 300) return 'Success';
+        if (code >= 400 && code < 500) return 'Client Error';
+        if (code >= 500) return 'Server Error';
+        return 'Info';
+    }
+  }
+
+  /// Determines if notification should auto-dismiss based on HTTP code
+  static bool _shouldAutoDismiss(int code) {
+    // Success codes auto-dismiss
+    if (code >= 200 && code < 300) return true;
+    // Info/Redirection auto-dismiss
+    if (code >= 300 && code < 400) return true;
+    // Errors don't auto-dismiss (user should acknowledge)
+    return false;
   }
 
   static void success(

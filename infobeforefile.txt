@@ -1,2 +1,5 @@
-AuxTracker is an application to monitor the auxiliary customize for Diavox Network Inc.
-© 2025 Diavox Network Inc. Developed by Jhun Norman Alonzo
+Welcome to AuxTracker!
+
+AuxTracker helps monitor and manage auxiliary statuses, designed for Diavox Network Inc.
+
+Developed by Jhun Norman Alonzo © 2025 Diavox Network Inc.

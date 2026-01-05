@@ -96,7 +96,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       if (message['event'] == "messageEvent") {
         final data = message['data'];
         final content = data['message'];
-        CustomNotification.info(content);
+        CustomNotification.fromHttpCode(content);
       }
 
       if (message['event'] == "logoutEmployeeEvent") {
@@ -736,7 +736,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       final lastAux = await ApiController.instance.getLatestEmployeeLog();
       sub = lastAux['aux_sub'];
     }
-    print(jsonEncode(sub));
 
     final aux = findAuxiliaryBySub(sub);
 
@@ -953,7 +952,10 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     setState(() {
       _stateAux = sub;
     });
-    CustomNotification.info(response['message']);
+    CustomNotification.fromHttpCode(
+      response['message'],
+      httpCode: response['http_code'],
+    );
     if (response['code'] != "DUPLICATE_AUX") _startTimer();
     final userInfo = await ApiController.instance.loadUserInfo();
     if (userInfo != null) {
@@ -969,7 +971,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     setState(() {
       _stateAux = sub;
     });
-    CustomNotification.info(response['message']);
+    CustomNotification.fromHttpCode(response['message']);
     if (response['code'] != "DUPLICATE_AUX") _startTimer();
     final userInfo = await ApiController.instance.loadUserInfo();
     if (userInfo != null) {
@@ -997,7 +999,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       await ApiController.instance.forceLogout();
       return;
     }
-
+    // asdf
     if (response['code'] == "ALREADY_TIMED_IN" ||
         response['code'] == "DUPLICATE_AUX") {
       final userInfo = await ApiController.instance.loadUserInfo();
@@ -1021,7 +1023,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
         );
         logger.trail("[${response['code']}] auxiliary set to $sub.");
       }
-      CustomNotification.info(response['message']);
+      CustomNotification.fromHttpCode(response['message']);
     }
   }
 
@@ -1094,7 +1096,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       );
       logger.trail("[${result['code']}] auxiliary set to OFF.");
 
-      CustomNotification.info(result['message']);
+      CustomNotification.fromHttpCode(result['message']);
       await ApiController.instance.logout();
       await WindowModes.normal();
       if (mounted) {
@@ -1305,7 +1307,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
               setState(() {
                 _hasPersonalBreakRequest = true;
               });
-              CustomNotification.info(message);
+              CustomNotification.fromHttpCode(message);
             } else {
               CustomNotification.error("Failed to request Personal Break");
             }
@@ -1517,7 +1519,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
             setState(() {
               _stateAux = _selectedAux!['sub'];
             });
-            CustomNotification.info(response['message']);
+            CustomNotification.fromHttpCode(response['message']);
             if (response['code'] == "NO_ACTIVE_SCHEDULE") {
               final userInfo = await ApiController.instance.loadUserInfo();
               if (userInfo != null) {
@@ -1578,7 +1580,10 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       setState(() {
         _stateAux = _selectedAux!['sub'];
       });
-      CustomNotification.info(response['message']);
+      CustomNotification.fromHttpCode(
+        response['message'],
+        httpCode: response['http_code'],
+      );
       if (response['code'] == "NO_ACTIVE_SCHEDULE") {
         final userInfo = await ApiController.instance.loadUserInfo();
         if (userInfo != null) {
@@ -1590,9 +1595,12 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
         await ApiController.instance.forceLogout();
         return;
       }
-      if (response['code'] != "DUPLICATE_AUX") {
-        _startTimer();
+      if (response['code'] == "ALREADY_TIMED_IN" ||
+          response['code'] == "DUPLICATE_AUX") {
+        await settingLastLog();
+        return;
       }
+      _startTimer();
 
       final logger = PrototypeLogger(
         logFolder: userInfo['username'].toString().toLowerCase(),
@@ -1612,7 +1620,11 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       );
     } else {
       setSelectedAux();
-      CustomNotification.info("Setting aux to $lastLog");
+      print("eyy ${response}");
+      CustomNotification.fromHttpCode(
+        "Setting aux to $lastLog",
+        httpCode: response['http_code'],
+      );
     }
     setState(() {
       _stateAux = lastLog;
