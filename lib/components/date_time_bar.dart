@@ -52,7 +52,7 @@ class _DateTimeBarState extends State<DateTimeBar> {
         const Icon(Icons.access_time, size: 16, color: Colors.lightGreenAccent),
         const SizedBox(width: 8),
         Text(
-          DateFormat('HH:mm:ss').format(now),
+          DateFormat('hh:mm:ss a').format(now),
           style: const TextStyle(
             color: Colors.white,
             fontSize: 12,

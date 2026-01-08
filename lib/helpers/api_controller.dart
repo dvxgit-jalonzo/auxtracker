@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:auxtrack/app_navigator.dart';
 import 'package:auxtrack/helpers/configuration.dart';
@@ -10,6 +11,7 @@ import 'package:auxtrack/helpers/window_modes.dart';
 import 'package:auxtrack/main.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiController {
@@ -135,6 +137,7 @@ class ApiController {
       logger.trail("[${result['code']}] have a schedule: ${result['message']}");
 
       if (response.statusCode != 200) {
+        await gracefullyLogoutIfApplicable();
         throw Exception(result['message']);
       }
     } catch (e) {
@@ -351,6 +354,44 @@ class ApiController {
     }
   }
 
+  Future<bool> gracefullyLogoutIfApplicable() async {
+    try {
+      final baseUrl = await Configuration.instance.get("baseUrl");
+      final headers = await _headers();
+      final userInfo = await loadUserInfo();
+
+      if (userInfo == null) {
+        print('User info not found.');
+        return false;
+      }
+
+      final employeeId = userInfo['id'];
+      final url = Uri.parse('$baseUrl/gracefully/logout');
+
+      Map<String, dynamic> params = {
+        "employee_id": employeeId,
+      };
+
+      final response = await http.post(
+        url,
+        headers: headers,
+        body: jsonEncode(params),
+      );
+
+      print("response : ${response.statusCode}");
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      await forceLogout();
+      return false;
+    }
+  }
+
+
   Future<bool> deleteOvertime() async {
     try {
       final baseUrl = await Configuration.instance.get("baseUrl");
@@ -557,11 +598,27 @@ class ApiController {
         print('User info fetched successfully.');
         final userInfo = jsonDecode(response.body);
         await _saveUserInfo(userInfo);
+        // await hideSharedPreferencesFile();
       } else {
         throw Exception(status['message']);
       }
     } catch (e) {
       rethrow;
+    }
+  }
+
+  Future<void> hideSharedPreferencesFile() async {
+    if (!Platform.isWindows) return;
+
+    final dir = await getApplicationSupportDirectory();
+    final prefsFile = File('${dir.path}\\shared_preferences.json');
+
+    if (await prefsFile.exists()) {
+      await Process.run(
+        'attrib',
+        ['+h', prefsFile.path],
+        runInShell: true,
+      );
     }
   }
 
