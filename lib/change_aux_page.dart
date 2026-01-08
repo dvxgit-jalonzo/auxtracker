@@ -656,11 +656,9 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                             onPressed: () async {
                               final status = await ApiController.instance
                                   .deletePersonalBreak();
-                              if (status) {
-                                setState(() {
-                                  _hasPersonalBreakRequest = false;
-                                });
-                              }
+                              setState(() {
+                                _hasPersonalBreakRequest = false;
+                              });
                             },
                             child: const Text(
                               "CANCEL",
@@ -718,10 +716,10 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                   .deleteOvertime();
                               if (result == true) {
                                 setSelectedAux();
-                                setState(() {
-                                  _hasOvertimeRequest = false;
-                                });
                               }
+                              setState(() {
+                                _hasOvertimeRequest = false;
+                              });
                               return;
                             },
                             child: const Text(
