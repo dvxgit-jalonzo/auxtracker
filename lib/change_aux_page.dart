@@ -166,28 +166,20 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                             ConnectionState.waiting) {
                           return Center(
                             child: Container(
-                              padding: const EdgeInsets.all(16),
+                              padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Colors.lightBlue.withValues(alpha: 0.2),
-                                    Colors.white.withValues(alpha: 0.08),
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
+                                color: Colors.white.withValues(alpha: 0.08),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.2),
-                                  width: 1.5,
+                                  color: Colors.white.withValues(alpha: 0.15),
                                 ),
                               ),
-                              child: Center(
+                              child: const SizedBox(
+                                width: 20,
+                                height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: Colors.lightGreenAccent.withValues(
-                                    alpha: 0.7,
-                                  ),
+                                  color: Colors.white70,
                                 ),
                               ),
                             ),
@@ -229,14 +221,14 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                     decoration: BoxDecoration(
                                       gradient: LinearGradient(
                                         colors: [
-                                          Colors.yellow.shade600,
+                                          Colors.yellow.shade900,
                                           Colors.amber.shade400,
                                         ],
                                       ),
                                       shape: BoxShape.circle,
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.yellow.withValues(
+                                          color: Colors.red.withValues(
                                             alpha: 0.5,
                                           ),
                                           blurRadius: 8,
@@ -282,7 +274,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                       style: TextStyle(
                                         color: _isIdle
                                             ? Colors.yellow
-                                            : Colors.lightGreenAccent,
+                                            : Colors.orange,
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,
                                         letterSpacing: 0.8,
@@ -313,7 +305,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                         Icon(
                                           Icons.timer_sharp,
                                           size: 16,
-                                          color: Colors.lightGreenAccent,
+                                          color: Colors.orange,
                                         ),
                                         const SizedBox(width: 5),
                                         Text(
@@ -777,86 +769,68 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
           final isSelected = _selectedAux?['id'] == aux.id;
 
           return AnimatedContainer(
-            duration: const Duration(seconds: 5),
-            curve: Curves.easeOut,
+            duration: const Duration(milliseconds: 300), // ⬅ faster, snappier
+            curve: Curves.easeOutCubic,
             child: Material(
               color: Colors.transparent,
-              borderRadius: BorderRadius.circular(50),
+              borderRadius: BorderRadius.circular(16),
               child: InkWell(
                 borderRadius: BorderRadius.circular(16),
                 onTap: () => _handleAuxSelection(aux),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: isSelected
-                          ? [Colors.lightBlue.shade600, Colors.indigo.shade800]
-                          : [
-                              Colors.white.withValues(alpha: 0.15),
-                              Colors.white.withValues(alpha: 0.08),
+                    // 🔥 Only selected gets gradient
+                    gradient: isSelected
+                        ? LinearGradient(
+                            colors: [
+                              Colors.purple.shade600,
+                              Colors.indigo.shade800,
                             ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          )
+                        : null,
+
+                    // 🧊 Glassy background for inactive
+                    color: isSelected
+                        ? null
+                        : Colors.white.withValues(alpha: 0.08),
+
                     borderRadius: BorderRadius.circular(16),
+
+                    // 🟣 Clear but calm borders
                     border: Border.all(
                       color: isSelected
-                          ? Colors.cyanAccent.shade400.withValues(alpha: 0.8)
-                          : Colors.white.withValues(alpha: 0.15),
-                      width: isSelected ? 2.5 : 1.0,
+                          ? Colors.indigo.shade400
+                          : Colors.white.withValues(alpha: 0.12),
+                      width: isSelected ? 2.2 : 1,
                     ),
+
+                    // ✨ Glow only for active
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
-                              color: Colors.cyanAccent.withValues(alpha: 0.3),
-                              blurRadius: 10,
+                              color: Colors.indigo.withValues(alpha: 0.6),
+                              blurRadius: 12,
                               spreadRadius: 2,
                             ),
                           ]
-                        : [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.3),
-                              blurRadius: 3,
-                              offset: const Offset(1, 1),
-                            ),
-                          ],
+                        : [],
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Text ng Auxiliary
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            FittedBox(
-                              fit: BoxFit
-                                  .scaleDown, // Mag-shrink ang font if needed
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                ),
-                                child: Text(
-                                  aux.sub,
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: isSelected
-                                        ? Colors.white
-                                        : Colors.white70,
-                                    fontSize: 13,
-                                    fontWeight: isSelected
-                                        ? FontWeight.w900
-                                        : FontWeight.w600,
-                                    letterSpacing: 0.8,
-                                  ),
-                                  maxLines: null,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                  child: Center(
+                    child: Text(
+                      aux.sub,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : Colors.white70,
+                        fontSize: 13,
+                        fontWeight: isSelected
+                            ? FontWeight.w800
+                            : FontWeight.w600,
+                        letterSpacing: 0.6,
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -866,6 +840,112 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       ),
     );
   }
+
+  // Widget _buildAuxiliaryList(List<Auxiliary> auxiliaries) {
+  //   return Padding(
+  //     padding: const EdgeInsets.all(2),
+  //     child: GridView.builder(
+  //       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+  //         crossAxisCount: 2,
+  //         crossAxisSpacing: 5,
+  //         mainAxisSpacing: 5,
+  //         childAspectRatio: 2,
+  //       ),
+  //       itemCount: auxiliaries.length,
+  //       itemBuilder: (context, index) {
+  //         final aux = auxiliaries[index];
+  //         final isSelected = _selectedAux?['id'] == aux.id;
+  //
+  //         return AnimatedContainer(
+  //           duration: const Duration(seconds: 5),
+  //           curve: Curves.easeOut,
+  //           child: Material(
+  //             color: Colors.transparent,
+  //             borderRadius: BorderRadius.circular(50),
+  //             child: InkWell(
+  //               borderRadius: BorderRadius.circular(16),
+  //               onTap: () => _handleAuxSelection(aux),
+  //               child: Container(
+  //                 padding: const EdgeInsets.symmetric(horizontal: 4),
+  //                 decoration: BoxDecoration(
+  //                   gradient: LinearGradient(
+  //                     colors: isSelected
+  //                         ? [Colors.purple.shade600, Colors.indigo.shade800]
+  //                         : [
+  //                             Colors.white.withValues(alpha: 0.15),
+  //                             Colors.white.withValues(alpha: 0.08),
+  //                           ],
+  //                     begin: Alignment.topLeft,
+  //                     end: Alignment.bottomRight,
+  //                   ),
+  //                   borderRadius: BorderRadius.circular(16),
+  //                   border: Border.all(
+  //                     color: isSelected
+  //                         ? Colors.indigo.shade400.withValues(alpha: 0.8)
+  //                         : Colors.white.withValues(alpha: 0.15),
+  //                     width: isSelected ? 2.5 : 1.0,
+  //                   ),
+  //                   boxShadow: isSelected
+  //                       ? [
+  //                           BoxShadow(
+  //                             color: Colors.indigo,
+  //                             blurRadius: 10,
+  //                             spreadRadius: 2,
+  //                           ),
+  //                         ]
+  //                       : [
+  //                           BoxShadow(
+  //                             color: Colors.black.withValues(alpha: 0.3),
+  //                             blurRadius: 3,
+  //                             offset: const Offset(1, 1),
+  //                           ),
+  //                         ],
+  //                 ),
+  //                 child: Row(
+  //                   mainAxisAlignment: MainAxisAlignment.center,
+  //                   children: [
+  //                     // Text ng Auxiliary
+  //                     Expanded(
+  //                       child: Column(
+  //                         mainAxisAlignment: MainAxisAlignment.center,
+  //                         children: [
+  //                           FittedBox(
+  //                             fit: BoxFit
+  //                                 .scaleDown, // Mag-shrink ang font if needed
+  //                             child: Padding(
+  //                               padding: const EdgeInsets.symmetric(
+  //                                 horizontal: 4,
+  //                               ),
+  //                               child: Text(
+  //                                 aux.sub,
+  //                                 textAlign: TextAlign.center,
+  //                                 style: TextStyle(
+  //                                   color: isSelected
+  //                                       ? Colors.white
+  //                                       : Colors.white70,
+  //                                   fontSize: 13,
+  //                                   fontWeight: isSelected
+  //                                       ? FontWeight.w900
+  //                                       : FontWeight.w600,
+  //                                   letterSpacing: 0.8,
+  //                                 ),
+  //                                 maxLines: null,
+  //                               ),
+  //                             ),
+  //                           ),
+  //                         ],
+  //                       ),
+  //                     ),
+  //                   ],
+  //                 ),
+  //               ),
+  //             ),
+  //           ),
+  //         );
+  //       },
+  //     ),
+  //   );
+  // }
 
   Future<String> _getUsername() async {
     final userInfo = await ApiController.instance.loadUserInfo();
