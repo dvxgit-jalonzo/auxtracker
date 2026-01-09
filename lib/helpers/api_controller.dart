@@ -163,6 +163,7 @@ class ApiController {
         await getUserInfo();
         await getAuxiliaries();
         await getReverbAppKey();
+        await getAuxiliaryColors();
         await checkActiveSchedule();
       } else {
         throw Exception(status['message']);
@@ -306,6 +307,49 @@ class ApiController {
     }
   }
 
+  Future<void> getAuxiliaryColors() async {
+    final baseUrl = await Configuration.instance.get("baseUrl");
+    final headers = await _headers();
+    final base = Uri.parse(baseUrl);
+    final protocol = base.scheme;
+    final host = base.host;
+    final port = base.hasPort ? base.port : null;
+    Uri url = protocol == "https"
+        ? Uri.https(host, '/api/get-auxiliary-color')
+        : Uri.http(host, '/api/get-auxiliary-color');
+
+    if (port != null) {
+      url = url.replace(port: port);
+    }
+
+    // Send GET request
+    final response = await http.get(url, headers: headers);
+
+    //
+    final result = jsonDecode(response.body);
+
+    if(response.statusCode == 200){
+      await _saveAuxiliaryColors(result);
+    }
+    print("colors : $result");
+  }
+
+  Future<String> pluckAuxiliaryColor(String main) async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? auxiliaryColorsJson = prefs.getString('auxiliaryColors');
+
+    if (auxiliaryColorsJson == null) {
+      return 'grey';
+    }
+
+    try {
+      final Map<String, dynamic> colorMap = jsonDecode(auxiliaryColorsJson);
+      return colorMap[main] ?? 'grey';
+    } catch (e) {
+      print("Error decoding auxiliary colors: $e");
+      return 'grey';
+    }
+  }
   Future<bool> deletePersonalBreak() async {
     try {
       final baseUrl = await Configuration.instance.get("baseUrl");
@@ -569,6 +613,12 @@ class ApiController {
   Future<void> _saveUserInfo(Map<String, dynamic> userInfo) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('userInfo', jsonEncode(userInfo));
+  }
+
+  /// Save auxiliaryColors info to SharedPreferences
+  Future<void> _saveAuxiliaryColors(Map<String, dynamic> auxiliaryColors) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('auxiliaryColors', jsonEncode(auxiliaryColors));
   }
 
   /// Load user info from SharedPreferences

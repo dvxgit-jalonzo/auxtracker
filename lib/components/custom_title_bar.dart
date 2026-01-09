@@ -137,10 +137,7 @@ class _CustomTitleBarState extends State<CustomTitleBar> {
         child: Container(
           height: 30,
           decoration: BoxDecoration(
-            color: Colors.deepPurple.shade900,
-            gradient: LinearGradient(
-              colors: [Colors.green.shade700, Colors.deepPurple.shade900],
-            ),
+            color: Colors.black,
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
