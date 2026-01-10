@@ -33,24 +33,24 @@ class _DateTimeBarState extends State<DateTimeBar> {
 
     return Row(
       children: [
-        const Icon(Icons.calendar_month, size: 16, color: Colors.white),
+        const Icon(Icons.calendar_month, size: 16, color: Colors.black87),
         const SizedBox(width: 8),
         Text(
           DateFormat('MMMM d, yyyy').format(now),
           style: const TextStyle(
-            color: Colors.white,
+            color: Colors.black87,
             fontSize: 12,
             fontWeight: FontWeight.bold,
             letterSpacing: 0.4,
           ),
         ),
         const SizedBox(width: 8),
-        const Icon(Icons.access_time, size: 16, color: Colors.white),
+        const Icon(Icons.access_time, size: 16, color: Colors.black87),
         const SizedBox(width: 8),
         Text(
           DateFormat('hh:mm:ss a').format(now),
           style: const TextStyle(
-            color: Colors.white,
+            color: Colors.black87,
             fontSize: 12,
             fontWeight: FontWeight.bold,
             letterSpacing: 0.4,

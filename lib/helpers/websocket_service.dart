@@ -65,28 +65,28 @@ class WebSocketService {
       _channel!.sink.add(
         json.encode({
           "event": "pusher:subscribe",
-          "data": {"channel": "personalBreakResponseEvent.$employeeId"},
+          "data": {"channel": "personalBreakResponseEvent-$employeeId"},
         }),
       );
 
       _channel!.sink.add(
         json.encode({
           "event": "pusher:subscribe",
-          "data": {"channel": "overtimeResponseEvent.$employeeId"},
+          "data": {"channel": "overtimeResponseEvent-$employeeId"},
         }),
       );
 
       _channel!.sink.add(
         json.encode({
           "event": "pusher:subscribe",
-          "data": {"channel": "logoutEmployeeEvent.$employeeId"},
+          "data": {"channel": "logoutEmployeeEvent-$employeeId"},
         }),
       );
 
       _channel!.sink.add(
         json.encode({
           "event": "pusher:subscribe",
-          "data": {"channel": "messageEvent.$employeeId"},
+          "data": {"channel": "messageEvent-$employeeId"},
         }),
       );
 
@@ -124,6 +124,7 @@ class WebSocketService {
       }
       final eventData = jsonDecode(jsonMap['data']);
       _messageController.add({'event': event, 'data': eventData});
+      return;
     } catch (e) {
       debugPrint("Error processing message: $e");
     }

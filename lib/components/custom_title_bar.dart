@@ -38,7 +38,7 @@ class _CustomTitleBarState extends State<CustomTitleBar> {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.grey[850],
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(10),
                 boxShadow: [
                   BoxShadow(
@@ -52,9 +52,13 @@ class _CustomTitleBarState extends State<CustomTitleBar> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text(
-                    'Heads up! Minimizing the app may cause you to forget to log out.',
-                    style: TextStyle(color: Colors.white, fontSize: 12),
-                    textAlign: TextAlign.center,
+                    'Minimizing the app may cause you to forget to log out.',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.start,
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -76,8 +80,7 @@ class _CustomTitleBarState extends State<CustomTitleBar> {
                       const SizedBox(width: 6),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              Colors.deepPurple.shade900, // modern green
+                          backgroundColor: Colors.teal, // modern green
                           foregroundColor: Colors.white, // text color
                           elevation: 4,
                           shadowColor: Colors.black.withOpacity(0.4),
@@ -136,9 +139,7 @@ class _CustomTitleBarState extends State<CustomTitleBar> {
         onPanUpdate: (details) async {},
         child: Container(
           height: 30,
-          decoration: BoxDecoration(
-            color: Colors.black,
-          ),
+          decoration: BoxDecoration(color: Colors.transparent),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -158,7 +159,7 @@ class _CustomTitleBarState extends State<CustomTitleBar> {
                     minWidth: 30,
                     minHeight: 30,
                   ),
-                  icon: const Icon(Icons.remove, color: Colors.white),
+                  icon: const Icon(Icons.remove, color: Colors.black87),
                   onPressed: _showMinimizeConfirmation,
                 ),
               ],

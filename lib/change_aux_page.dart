@@ -129,7 +129,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       if (message['event'] == "messageEvent") {
         final data = message['data'];
         final content = data['message'];
-        CustomNotification.fromHttpCode(content);
+        CustomNotification.warning(content, position: NotificationPosition.bottom);
       }
 
       if (message['event'] == "logoutEmployeeEvent") {
@@ -170,15 +170,15 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white70, // Clean white background
+      backgroundColor: Colors.white, // Clean white background
       body: SafeArea(
         child: Stack(
           children: [
             Padding(
               padding: const EdgeInsets.only(
                 top: 33.0,
-                left: 10,
-                right: 10,
+                left: 12,
+                right: 12,
                 bottom: 10,
               ),
               child: Column(
@@ -716,42 +716,80 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     );
   }
 
+  // Color _getColorFromString(String colorName) {
+  //   const Map<String, Color> colors = {
+  //     // Neutrals
+  //     'slate': Color(0xFF475569),
+  //     'gray': Color(0xFF4B5563),
+  //     'zinc': Color(0xFF52525B),
+  //     'neutral': Color(0xFF525252),
+  //     'stone': Color(0xFF57534E),
+  //
+  //     // Warm
+  //     'red': Color(0xFFDC2626),
+  //     'orange': Color(0xFFEA580C),
+  //     'amber': Color(0xFFD97706),
+  //     'yellow': Color(0xFFCA8A04),
+  //
+  //     // Greens
+  //     'lime': Color(0xFF65A30D),
+  //     'green': Color(0xFF16A34A),
+  //     'emerald': Color(0xFF059669),
+  //     'teal': Color(0xFF0D9488),
+  //
+  //     // Cool
+  //     'cyan': Color(0xFF0891B2),
+  //     'sky': Color(0xFF0284C7),
+  //     'blue': Color(0xFF2563EB),
+  //     'indigo': Color(0xFF4F46E5),
+  //
+  //     // Purple / Pink
+  //     'violet': Color(0xFF7C3AED),
+  //     'purple': Color(0xFF7E22CE),
+  //     'fuchsia': Color(0xFFC026D3),
+  //     'pink': Color(0xFFDB2777),
+  //     'rose': Color(0xFFE11D48),
+  //   };
+  //
+  //   return colors[colorName.toLowerCase()] ?? const Color(0xFF2563EB);
+  // }
+
   Color _getColorFromString(String colorName) {
     const Map<String, Color> colors = {
-      // Neutrals
-      'slate': Color(0xFF475569),
-      'gray': Color(0xFF4B5563),
-      'zinc': Color(0xFF52525B),
-      'neutral': Color(0xFF525252),
-      'stone': Color(0xFF57534E),
+      // Neutrals (Clean but distinct)
+      'slate': Color(0xFF94A3B8),
+      'gray': Color(0xFF9CA3AF),
+      'zinc': Color(0xFFA1A1AA),
+      'neutral': Color(0xFFA3A3A3),
+      'stone': Color(0xFFA8A29E),
 
-      // Warm
-      'red': Color(0xFFDC2626),
-      'orange': Color(0xFFEA580C),
-      'amber': Color(0xFFD97706),
-      'yellow': Color(0xFFCA8A04),
+      // Warm (Modern Pastel/Candy)
+      'red': Color(0xFFF87171),
+      'orange': Color(0xFFFB923C),
+      'amber': Color(0xFFFBBF24),
+      'yellow': Color(0xFFFACC15),
 
-      // Greens
-      'lime': Color(0xFF65A30D),
-      'green': Color(0xFF16A34A),
-      'emerald': Color(0xFF059669),
-      'teal': Color(0xFF0D9488),
+      // Greens (Fresh & Pop)
+      'lime': Color(0xFFA3E635),
+      'green': Color(0xFF4ADE80),
+      'emerald': Color(0xFF34D399),
+      'teal': Color(0xFF2DD4BF),
 
-      // Cool
-      'cyan': Color(0xFF0891B2),
-      'sky': Color(0xFF0284C7),
-      'blue': Color(0xFF2563EB),
-      'indigo': Color(0xFF4F46E5),
+      // Cool (Calm but Vibrant)
+      'cyan': Color(0xFF22D3EE),
+      'sky': Color(0xFF38BDF8),
+      'blue': Color(0xFF60A5FA),
+      'indigo': Color(0xFF818CF8),
 
-      // Purple / Pink
-      'violet': Color(0xFF7C3AED),
-      'purple': Color(0xFF7E22CE),
-      'fuchsia': Color(0xFFC026D3),
-      'pink': Color(0xFFDB2777),
-      'rose': Color(0xFFE11D48),
+      // Purple / Pink (Soft Neon)
+      'violet': Color(0xFFA78BFA),
+      'purple': Color(0xFFC084FC),
+      'fuchsia': Color(0xFFE879F9),
+      'pink': Color(0xFFF472B6),
+      'rose': Color(0xFFFB7185),
     };
 
-    return colors[colorName.toLowerCase()] ?? const Color(0xFF2563EB);
+    return colors[colorName.toLowerCase()] ?? const Color(0xFF60A5FA);
   }
 
   Widget _buildAuxiliaryList(List<Auxiliary> auxiliaries) {
@@ -813,7 +851,11 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     final aux = findAuxiliaryBySub(sub);
 
     if (aux != null) {
+      final auxColor = await ApiController.instance.pluckAuxiliaryColor(
+        aux.main,
+      );
       setState(() {
+        _badgeColor = _getColorFromString(auxColor);
         _selectedAux = {'id': aux.id, 'main': aux.main, 'sub': aux.sub};
       });
     } else {
@@ -979,7 +1021,13 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       return;
     } else {
       _startTimer();
+      final aux = findAuxiliaryBySub(sub);
+      final auxColor = await ApiController.instance.pluckAuxiliaryColor(
+        aux!.main,
+      );
+
       setState(() {
+        _badgeColor = _getColorFromString(auxColor);
         _stateAux = sub;
       });
       final userInfo = await ApiController.instance.loadUserInfo();
@@ -1094,10 +1142,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   }
 
   void _handleAuxSelection(Auxiliary aux) async {
-    final auxColor = await ApiController.instance.pluckAuxiliaryColor(aux.main);
-
     setState(() {
-      _badgeColor = _getColorFromString(auxColor);
       _selectedAux = {'id': aux.id, 'main': aux.main, 'sub': aux.sub};
     });
     _handleConfirm();
@@ -1112,11 +1157,17 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       );
 
       if (result == true) {
+        final colorName = await ApiController.instance.pluckAuxiliaryColor(
+          _selectedAux!['main'],
+        );
         setState(() {
+          _badgeColor = _getColorFromString(colorName);
           _hasOvertimeRequest = true;
         });
       } else {
-        CustomNotification.error("Failed to request OT");
+        CustomNotification.error(
+          "Failed to request OT. Check if theres pending OT request.",
+        );
       }
       return;
     }
@@ -1546,7 +1597,13 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
         _selectedAux!['sub'],
       );
       print(response);
+
+      final auxColor = await ApiController.instance.pluckAuxiliaryColor(
+        _selectedAux!['main'],
+      );
+
       setState(() {
+        _badgeColor = _getColorFromString(auxColor);
         _stateAux = _selectedAux!['sub'];
       });
       CustomNotification.fromHttpCode(
@@ -1583,6 +1640,11 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   Future<void> settingLastLog() async {
     final response = await ApiController.instance.getLatestEmployeeLog();
     final lastLog = response['aux_sub'];
+    final aux = findAuxiliaryBySub(lastLog);
+    final auxColor = await ApiController.instance.pluckAuxiliaryColor(
+      aux!.main,
+    );
+    _badgeColor = _getColorFromString(auxColor);
     if (lastLog == "OFF") {
       CustomNotification.warning(
         "Status: $lastLog. Please update your Aux to continue today's session.",

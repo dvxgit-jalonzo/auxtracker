@@ -14,12 +14,26 @@ class StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final Color backgroundColor = isIdle ? Colors.grey.shade600 : baseColor;
+
+    final Color borderColor = isIdle
+        ? Colors.grey.shade400
+        : HSLColor.fromColor(baseColor).withLightness(0.7).toColor();
+
+    final Color glowColor = isIdle
+        ? Colors.transparent
+        : baseColor.withOpacity(0.45);
+
     return Flexible(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isIdle ? Colors.grey[600] : baseColor,
+          color: backgroundColor,
+          border: Border.all(color: borderColor, width: 1.5),
           borderRadius: BorderRadius.circular(8),
+          boxShadow: isIdle
+              ? []
+              : [BoxShadow(color: glowColor, blurRadius: 12, spreadRadius: 1)],
         ),
         child: Text(
           isIdle ? "Inactive" : (stateAux ?? "NOT LOGGED"),
