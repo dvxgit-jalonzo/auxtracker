@@ -14,7 +14,6 @@ import 'package:window_manager/window_manager.dart';
 
 import 'components/custom_title_bar.dart';
 import 'components/date_time_bar.dart';
-import 'components/ui_colors.dart';
 import 'helpers/api_controller.dart';
 import 'helpers/idle_service.dart';
 import 'helpers/prototype_logger.dart';
@@ -55,9 +54,9 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   Color _badgeColor = Colors.grey;
   Map<String, Color> _auxiliaryColors = {};
 
-
   Color _getColorForCurrentTab() {
     final categories = _auxiliariesByCategory.keys.toList();
+
     final currentIndex = _tabController!.index;
 
     if (currentIndex < 0 || currentIndex >= categories.length) {
@@ -70,8 +69,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     return _auxiliaryColors[category] ?? Colors.blue;
   }
 
-
-
   Future<void> _loadAuxiliaryColors() async {
     final prefs = await SharedPreferences.getInstance();
     final colorsJson = prefs.getString('auxiliaryColors');
@@ -81,7 +78,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
 
       setState(() {
         _auxiliaryColors = colorsMap.map(
-              (key, value) => MapEntry(key, _getColorFromString(value as String)),
+          (key, value) => MapEntry(key, _getColorFromString(value as String)),
         );
       });
     }
@@ -142,8 +139,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     });
   }
 
-
-
   @override
   void dispose() {
     _idleSubscription?.cancel();
@@ -192,8 +187,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                   FutureBuilder<String>(
                     future: _name,
                     builder: (context, snapshot) {
-                      if (snapshot.connectionState ==
-                          ConnectionState.waiting) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
                         return Center(
                           child: Container(
                             padding: const EdgeInsets.all(12),
@@ -286,19 +280,20 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
 
                             // Status and Timer section
                             Row(
-                              mainAxisAlignment:
-                              MainAxisAlignment.spaceBetween,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                StatusBadge(baseColor: _badgeColor, isIdle: _isIdle, stateAux: _stateAux,),
+                                StatusBadge(
+                                  baseColor: _badgeColor,
+                                  isIdle: _isIdle,
+                                  stateAux: _stateAux,
+                                ),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 8,
                                     vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withValues(
-                                      alpha: 0.1,
-                                    ),
+                                    color: Colors.white.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
                                       color: Colors.white.withValues(
@@ -342,9 +337,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                       decoration: BoxDecoration(
                         color: Colors.grey.shade100,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: Colors.grey.shade300,
-                        ),
+                        border: Border.all(color: Colors.grey.shade300),
                       ),
                       child: Stack(
                         children: [
@@ -372,7 +365,8 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                               child: AnimatedBuilder(
                                 animation: _tabController!,
                                 builder: (context, child) {
-                                  final indicatorColor = _getColorForCurrentTab();
+                                  final indicatorColor =
+                                      _getColorForCurrentTab();
 
                                   return MouseRegion(
                                     cursor: SystemMouseCursors.click,
@@ -392,17 +386,22 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                         dividerColor: Colors.transparent,
                                         indicator: BoxDecoration(
                                           color: indicatorColor,
-                                          borderRadius: BorderRadius.circular(8),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: indicatorColor.withValues(alpha: 0.3),
+                                              color: indicatorColor.withValues(
+                                                alpha: 0.3,
+                                              ),
                                               blurRadius: 6,
                                               offset: const Offset(0, 2),
                                             ),
                                           ],
                                         ),
                                         labelColor: Colors.white,
-                                        unselectedLabelColor: Colors.grey.shade600,
+                                        unselectedLabelColor:
+                                            Colors.grey.shade600,
                                         labelStyle: const TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.bold,
@@ -413,13 +412,16 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                           fontWeight: FontWeight.w500,
                                           letterSpacing: 0.2,
                                         ),
-                                        tabs: _auxiliariesByCategory.keys.map((category) {
+                                        tabs: _auxiliariesByCategory.keys.map((
+                                          category,
+                                        ) {
                                           return Tab(
                                             child: Container(
-                                              padding: const EdgeInsets.symmetric(
-                                                horizontal: 12,
-                                                vertical: 6,
-                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 12,
+                                                    vertical: 6,
+                                                  ),
                                               child: Row(
                                                 mainAxisSize: MainAxisSize.min,
                                                 children: [
@@ -451,25 +453,25 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                 onTap: _isAnimating
                                     ? null
                                     : () async {
-                                  if (_tabController!.index > 0 &&
-                                      !_isAnimating) {
-                                    setState(() => _isAnimating = true);
+                                        if (_tabController!.index > 0 &&
+                                            !_isAnimating) {
+                                          setState(() => _isAnimating = true);
 
-                                    _tabController!.animateTo(
-                                      _tabController!.index - 1,
-                                    );
+                                          _tabController!.animateTo(
+                                            _tabController!.index - 1,
+                                          );
 
-                                    await Future.delayed(
-                                      const Duration(milliseconds: 300),
-                                    );
+                                          await Future.delayed(
+                                            const Duration(milliseconds: 300),
+                                          );
 
-                                    if (mounted) {
-                                      setState(
-                                            () => _isAnimating = false,
-                                      );
-                                    }
-                                  }
-                                },
+                                          if (mounted) {
+                                            setState(
+                                              () => _isAnimating = false,
+                                            );
+                                          }
+                                        }
+                                      },
                                 child: Container(
                                   width: 30,
                                   decoration: BoxDecoration(
@@ -498,26 +500,26 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                 onTap: _isAnimating
                                     ? null
                                     : () async {
-                                  if (_tabController!.index <
-                                      _tabController!.length - 1 &&
-                                      !_isAnimating) {
-                                    setState(() => _isAnimating = true);
+                                        if (_tabController!.index <
+                                                _tabController!.length - 1 &&
+                                            !_isAnimating) {
+                                          setState(() => _isAnimating = true);
 
-                                    _tabController!.animateTo(
-                                      _tabController!.index + 1,
-                                    );
+                                          _tabController!.animateTo(
+                                            _tabController!.index + 1,
+                                          );
 
-                                    await Future.delayed(
-                                      const Duration(milliseconds: 300),
-                                    );
+                                          await Future.delayed(
+                                            const Duration(milliseconds: 300),
+                                          );
 
-                                    if (mounted) {
-                                      setState(
-                                            () => _isAnimating = false,
-                                      );
-                                    }
-                                  }
-                                },
+                                          if (mounted) {
+                                            setState(
+                                              () => _isAnimating = false,
+                                            );
+                                          }
+                                        }
+                                      },
                                 child: Container(
                                   width: 30,
                                   decoration: BoxDecoration(
@@ -542,33 +544,30 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                   Expanded(
                     child: _tabController == null
                         ? Center(
-                      child: Text(
-                        'No auxiliaries available',
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 12,
-                        ),
-                      ),
-                    )
+                            child: Text(
+                              'No auxiliaries available',
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 12,
+                              ),
+                            ),
+                          )
                         : Container(
-                      padding: EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: Colors.grey.shade200,
-                        ),
-                      ),
-                      child: TabBarView(
-                        controller: _tabController,
-                        children: _auxiliariesByCategory.entries
-                            .map(
-                              (entry) =>
-                              _buildAuxiliaryList(entry.value),
-                        )
-                            .toList(),
-                      ),
-                    ),
+                            padding: EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey.shade200),
+                            ),
+                            child: TabBarView(
+                              controller: _tabController,
+                              children: _auxiliariesByCategory.entries
+                                  .map(
+                                    (entry) => _buildAuxiliaryList(entry.value),
+                                  )
+                                  .toList(),
+                            ),
+                          ),
                   ),
                 ],
               ),
@@ -591,9 +590,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                   child: Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: Colors.grey.shade300,
-                      ),
+                      border: Border.all(color: Colors.grey.shade300),
                     ),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
@@ -657,9 +654,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                   child: Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: Colors.grey.shade300,
-                      ),
+                      border: Border.all(color: Colors.grey.shade300),
                     ),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
@@ -722,33 +717,41 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   }
 
   Color _getColorFromString(String colorName) {
-    switch (colorName.toLowerCase()) {
-      case 'orange':
-        return Colors.orange;
-      case 'violet':
-      case 'purple':
-        return Colors.purple;
-      case 'blue':
-        return Colors.blue;
-      case 'red':
-        return Colors.red;
-      case 'green':
-        return Colors.green;
-      case 'yellow':
-        return Colors.yellow;
-      case 'pink':
-        return Colors.pink;
-      case 'teal':
-        return Colors.teal;
-      case 'amber':
-        return Colors.amber;
-      case 'indigo':
-        return Colors.indigo;
-      case 'cyan':
-        return Colors.cyan;
-      default:
-        return Colors.blue; // default color
-    }
+    const Map<String, Color> colors = {
+      // Neutrals
+      'slate': Color(0xFF475569),
+      'gray': Color(0xFF4B5563),
+      'zinc': Color(0xFF52525B),
+      'neutral': Color(0xFF525252),
+      'stone': Color(0xFF57534E),
+
+      // Warm
+      'red': Color(0xFFDC2626),
+      'orange': Color(0xFFEA580C),
+      'amber': Color(0xFFD97706),
+      'yellow': Color(0xFFCA8A04),
+
+      // Greens
+      'lime': Color(0xFF65A30D),
+      'green': Color(0xFF16A34A),
+      'emerald': Color(0xFF059669),
+      'teal': Color(0xFF0D9488),
+
+      // Cool
+      'cyan': Color(0xFF0891B2),
+      'sky': Color(0xFF0284C7),
+      'blue': Color(0xFF2563EB),
+      'indigo': Color(0xFF4F46E5),
+
+      // Purple / Pink
+      'violet': Color(0xFF7C3AED),
+      'purple': Color(0xFF7E22CE),
+      'fuchsia': Color(0xFFC026D3),
+      'pink': Color(0xFFDB2777),
+      'rose': Color(0xFFE11D48),
+    };
+
+    return colors[colorName.toLowerCase()] ?? const Color(0xFF2563EB);
   }
 
   Widget _buildAuxiliaryList(List<Auxiliary> auxiliaries) {
@@ -766,70 +769,31 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
           final aux = auxiliaries[index];
           final isSelected = _selectedAux?['id'] == aux.id;
 
-          return AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOutCubic,
-            child: Material(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(16),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: () => _handleAuxSelection(aux),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                  decoration: BoxDecoration(
-                    // Selected - vibrant blue gradient
-                    gradient: isSelected
-                        ? LinearGradient(
-                      colors: [
-                        _badgeColor, // Sky blue
-                        _badgeColor, // Darker blue
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    )
-                        : null,
-
-                    // Inactive - clean white with subtle border
-                    color: isSelected ? null : Colors.white,
-
-                    borderRadius: BorderRadius.circular(16),
-
-                    border: Border.all(
-                      color: isSelected
-                          ? _badgeColor
-                          : Colors.grey.shade300,
-                      width: isSelected ? 2 : 1,
-                    ),
-
-                    boxShadow: isSelected
-                        ? [
-                      BoxShadow(
-                        color: Color(0xFF0EA5E9).withValues(alpha: 0.4),
-                        blurRadius: 12,
-                        spreadRadius: 2,
-                      ),
-                    ]
-                        : [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Text(
-                      aux.sub,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: isSelected ? Colors.white : Colors.grey.shade700,
-                        fontSize: 13,
-                        fontWeight:
-                        isSelected ? FontWeight.w800 : FontWeight.w600,
-                        letterSpacing: 0.6,
-                      ),
-                    ),
+          return InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => _handleAuxSelection(aux),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? _badgeColor.withValues(alpha: 0.1)
+                    : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isSelected ? _badgeColor : Colors.grey.shade300,
+                  width: isSelected ? 2 : 1,
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  aux.sub,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: isSelected ? _badgeColor : Colors.grey.shade700,
+                    fontSize: 14,
+                    fontWeight: isSelected
+                        ? FontWeight.w600
+                        : FontWeight.normal,
                   ),
                 ),
               ),
@@ -1130,7 +1094,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   }
 
   void _handleAuxSelection(Auxiliary aux) async {
-
     final auxColor = await ApiController.instance.pluckAuxiliaryColor(aux.main);
 
     setState(() {

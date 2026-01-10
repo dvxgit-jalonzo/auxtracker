@@ -16,21 +16,17 @@ class StatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Flexible(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          // Kapag idle, gawin nating Grey/Slate para halatang "Inactive"
-          // Kapag active, gamitin ang baseColor (e.g., Purple)
           color: isIdle ? Colors.grey[600] : baseColor,
-          borderRadius: BorderRadius.circular(12),
-          // Inalis ang Border.all para maging solid type
+          borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
           isIdle ? "Inactive" : (stateAux ?? "NOT LOGGED"),
           style: const TextStyle(
-            color: Colors.white, // Mas malinis tignan ang White sa solid background
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 0.5,
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
           ),
           overflow: TextOverflow.ellipsis,
           textAlign: TextAlign.center,

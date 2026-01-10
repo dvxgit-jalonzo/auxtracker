@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../app_navigator.dart';
 
+// Add enum for position
+enum NotificationPosition { top, bottom }
+
 class CustomNotification {
   static OverlayEntry? _currentOverlay;
 
@@ -15,6 +18,7 @@ class CustomNotification {
     Duration duration = const Duration(seconds: 3),
     String? title,
     bool autoDismiss = true,
+    NotificationPosition position = NotificationPosition.top, // Add parameter
   }) {
     final overlay = _overlay;
     final context = _context;
@@ -38,6 +42,7 @@ class CustomNotification {
         duration: duration,
         title: title,
         autoDismiss: autoDismiss,
+        position: position, // Pass position
         onDismiss: () {
           _currentOverlay?.remove();
           _currentOverlay = null;
@@ -48,20 +53,11 @@ class CustomNotification {
     overlay.insert(_currentOverlay!);
   }
 
-  /// Shows notification based on Laravel HTTP status code
-  ///
-  /// Usage:
-  /// ```dart
-  /// CustomNotification.fromHttpCode(
-  ///   'Operation completed',
-  ///   httpCode: 200,
-  ///   title: 'Success',
-  /// );
-  /// ```
   static void fromHttpCode(
     String message, {
     int httpCode = 200,
     String? title,
+    NotificationPosition position = NotificationPosition.top, // Add parameter
   }) {
     final notifType = _getNotificationTypeFromHttpCode(httpCode);
     final defaultTitle = _getDefaultTitleFromHttpCode(httpCode);
@@ -72,47 +68,35 @@ class CustomNotification {
       type: notifType,
       title: title ?? defaultTitle,
       autoDismiss: autoDismiss,
+      position: position, // Pass position
     );
   }
 
-  /// Determines notification type based on HTTP status code
   static NotificationType _getNotificationTypeFromHttpCode(int code) {
     if (code >= 200 && code < 300) {
-      // 2xx: Success
       return NotificationType.success;
     } else if (code >= 300 && code < 400) {
-      // 3xx: Redirection (treat as info)
       return NotificationType.info;
     } else if (code >= 400 && code < 500) {
-      // 4xx: Client errors (warnings)
       return NotificationType.warning;
     } else if (code >= 500) {
-      // 5xx: Server errors
       return NotificationType.error;
     } else {
-      // 1xx: Informational
       return NotificationType.info;
     }
   }
 
-  /// Gets default title based on HTTP status code
   static String _getDefaultTitleFromHttpCode(int code) {
-    // Common Laravel HTTP status codes
     switch (code) {
-      // 2xx Success
       case 200:
         return 'Success';
       case 201:
         return 'Created';
       case 204:
         return 'No Content';
-
-      // 3xx Redirection
       case 301:
       case 302:
         return 'Redirected';
-
-      // 4xx Client Errors
       case 400:
         return 'Bad Request';
       case 401:
@@ -125,15 +109,12 @@ class CustomNotification {
         return 'Validation Error';
       case 429:
         return 'Too Many Requests';
-
-      // 5xx Server Errors
       case 500:
         return 'Server Error';
       case 502:
         return 'Bad Gateway';
       case 503:
         return 'Service Unavailable';
-
       default:
         if (code >= 200 && code < 300) return 'Success';
         if (code >= 400 && code < 500) return 'Client Error';
@@ -142,13 +123,9 @@ class CustomNotification {
     }
   }
 
-  /// Determines if notification should auto-dismiss based on HTTP code
   static bool _shouldAutoDismiss(int code) {
-    // Success codes auto-dismiss
     if (code >= 200 && code < 300) return true;
-    // Info/Redirection auto-dismiss
     if (code >= 300 && code < 400) return true;
-    // Errors don't auto-dismiss (user should acknowledge)
     return false;
   }
 
@@ -156,30 +133,44 @@ class CustomNotification {
     String message, {
     String? title,
     bool autoDismiss = true,
+    NotificationPosition position = NotificationPosition.top, // Add parameter
   }) {
     show(
       message: message,
       type: NotificationType.success,
       title: title,
       autoDismiss: autoDismiss,
+      position: position, // Pass position
     );
   }
 
-  static void error(String message, {String? title, bool autoDismiss = false}) {
+  static void error(
+    String message, {
+    String? title,
+    bool autoDismiss = false,
+    NotificationPosition position = NotificationPosition.top, // Add parameter
+  }) {
     show(
       message: message,
       type: NotificationType.error,
       title: title,
       autoDismiss: autoDismiss,
+      position: position, // Pass position
     );
   }
 
-  static void info(String message, {String? title, bool autoDismiss = true}) {
+  static void info(
+    String message, {
+    String? title,
+    bool autoDismiss = true,
+    NotificationPosition position = NotificationPosition.top, // Add parameter
+  }) {
     show(
       message: message,
       type: NotificationType.info,
       title: title,
       autoDismiss: autoDismiss,
+      position: position, // Pass position
     );
   }
 
@@ -187,12 +178,14 @@ class CustomNotification {
     String message, {
     String? title,
     bool autoDismiss = false,
+    NotificationPosition position = NotificationPosition.top, // Add parameter
   }) {
     show(
       message: message,
       type: NotificationType.warning,
       title: title,
       autoDismiss: autoDismiss,
+      position: position, // Pass position
     );
   }
 }
@@ -220,6 +213,7 @@ class _NotificationWidget extends StatefulWidget {
   final Duration duration;
   final String? title;
   final bool autoDismiss;
+  final NotificationPosition position; // Add parameter
   final VoidCallback onDismiss;
 
   const _NotificationWidget({
@@ -229,6 +223,7 @@ class _NotificationWidget extends StatefulWidget {
     required this.duration,
     required this.onDismiss,
     required this.autoDismiss,
+    required this.position, // Add parameter
     this.title,
   });
 
@@ -237,10 +232,12 @@ class _NotificationWidget extends StatefulWidget {
 }
 
 class _NotificationWidgetState extends State<_NotificationWidget>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<Offset> _slideAnimation;
   late Animation<double> _fadeAnimation;
+  late AnimationController _progressController; // Add progress controller
+  late Animation<double> _progressAnimation;
 
   @override
   void initState() {
@@ -251,7 +248,9 @@ class _NotificationWidgetState extends State<_NotificationWidget>
     );
 
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, -1),
+      begin: widget.position == NotificationPosition.top
+          ? const Offset(0, -1)
+          : const Offset(0, 1),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.elasticOut));
 
@@ -262,19 +261,35 @@ class _NotificationWidgetState extends State<_NotificationWidget>
 
     _controller.forward();
 
-    // Auto dismiss animation - only if autoDismiss is true
+    // Progress bar controller
     if (widget.autoDismiss) {
+      _progressController = AnimationController(
+        vsync: this,
+        duration: widget.duration,
+      );
+
+      _progressAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
+        CurvedAnimation(parent: _progressController, curve: Curves.linear),
+      );
+
+      _progressController.forward();
+
       Future.delayed(widget.duration - const Duration(milliseconds: 300), () {
         if (mounted) {
           _controller.reverse().then((_) => widget.onDismiss());
         }
       });
+    } else {
+      // Dummy controller for non-auto-dismiss
+      _progressController = AnimationController(vsync: this);
+      _progressAnimation = AlwaysStoppedAnimation(0.0);
     }
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _progressController.dispose();
     super.dispose();
   }
 
@@ -312,6 +327,7 @@ class _NotificationWidgetState extends State<_NotificationWidget>
   }
 
   void _dismiss() {
+    _progressController.stop();
     _controller.reverse().then((_) => widget.onDismiss());
   }
 
@@ -322,7 +338,12 @@ class _NotificationWidgetState extends State<_NotificationWidget>
     final isMobile = size.width < 600;
 
     return Positioned(
-      bottom: isMobile ? 16 : 24,
+      top: widget.position == NotificationPosition.top
+          ? (isMobile ? 16 : 24)
+          : null,
+      bottom: widget.position == NotificationPosition.bottom
+          ? (isMobile ? 16 : 24)
+          : null,
       right: isMobile ? (size.width - widget.width) / 2 : 24,
       child: SlideTransition(
         position: _slideAnimation,
@@ -332,7 +353,6 @@ class _NotificationWidgetState extends State<_NotificationWidget>
             color: Colors.transparent,
             child: Container(
               width: widget.width,
-              padding: EdgeInsets.all(isMobile ? 12 : 16),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
@@ -348,69 +368,93 @@ class _NotificationWidgetState extends State<_NotificationWidget>
                   ),
                 ],
               ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Icon
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: config.bgColor,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      config.icon,
-                      color: config.color,
-                      size: isMobile ? 20 : 24,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-
-                  // Content
-                  Expanded(
-                    child: Column(
+                  // Main content
+                  Padding(
+                    padding: EdgeInsets.all(isMobile ? 12 : 16),
+                    child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          widget.title ?? config.defaultTitle,
-                          style: TextStyle(
-                            fontSize: isMobile ? 14 : 15,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF1F2937),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: config.bgColor,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            config.icon,
+                            color: config.color,
+                            size: isMobile ? 20 : 24,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.message,
-                          style: TextStyle(
-                            fontSize: isMobile ? 12 : 13,
-                            color: const Color(0xFF6B7280),
-                            height: 1.4,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                widget.title ?? config.defaultTitle,
+                                style: TextStyle(
+                                  fontSize: isMobile ? 14 : 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF1F2937),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                widget.message,
+                                style: TextStyle(
+                                  fontSize: isMobile ? 12 : 13,
+                                  color: const Color(0xFF6B7280),
+                                  height: 1.4,
+                                ),
+                                maxLines: 3,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ),
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
+                        ),
+                        GestureDetector(
+                          onTap: _dismiss,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Icon(
+                              Icons.close,
+                              size: isMobile ? 16 : 18,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
                         ),
                       ],
                     ),
                   ),
 
-                  // Close button
-                  GestureDetector(
-                    onTap: _dismiss,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Icon(
-                        Icons.close,
-                        size: isMobile ? 16 : 18,
-                        color: Colors.grey.shade600,
-                      ),
+                  // Progress bar (only show if autoDismiss is true)
+                  if (widget.autoDismiss)
+                    AnimatedBuilder(
+                      animation: _progressAnimation,
+                      builder: (context, child) {
+                        return ClipRRect(
+                          borderRadius: const BorderRadius.only(
+                            bottomLeft: Radius.circular(11),
+                            bottomRight: Radius.circular(11),
+                          ),
+                          child: LinearProgressIndicator(
+                            value: _progressAnimation.value,
+                            backgroundColor: Colors.grey.shade200,
+                            valueColor: AlwaysStoppedAnimation(config.color),
+                            minHeight: 3,
+                          ),
+                        );
+                      },
                     ),
-                  ),
                 ],
               ),
             ),
