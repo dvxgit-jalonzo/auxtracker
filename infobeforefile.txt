@@ -1,5 +1,9 @@
-Welcome to AuxTracker!
+Welcome to AuxTracker
 
-AuxTracker helps monitor and manage auxiliary statuses, designed for Diavox Network Inc.
+AuxTracker is a productivity tool designed to monitor and manage auxiliary statuses efficiently within Diavox Network Inc.
 
-Developed by Jhun Norman Alonzo © 2025 Diavox Network Inc.
+Built to support operational accuracy, transparency, and performance across teams.
+
+© 2025 Diavox Network Inc. All rights reserved.
+
+Developed in-house for Diavox Network Inc.

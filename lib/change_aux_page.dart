@@ -753,43 +753,42 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
   //
   //   return colors[colorName.toLowerCase()] ?? const Color(0xFF2563EB);
   // }
-
   Color _getColorFromString(String colorName) {
     const Map<String, Color> colors = {
-      // Neutrals (Clean but distinct)
-      'slate': Color(0xFF94A3B8),
-      'gray': Color(0xFF9CA3AF),
-      'zinc': Color(0xFFA1A1AA),
-      'neutral': Color(0xFFA3A3A3),
-      'stone': Color(0xFFA8A29E),
+      // Neutrals (Balanced and modern)
+      'slate': Color(0xFF78909C),
+      'gray': Color(0xFF90A4AE),
+      'zinc': Color(0xFF9E9E9E),
+      'neutral': Color(0xFFBDBDBD),
+      'stone': Color(0xFFBCAAA4),
 
-      // Warm (Modern Pastel/Candy)
-      'red': Color(0xFFF87171),
-      'orange': Color(0xFFFB923C),
-      'amber': Color(0xFFFBBF24),
-      'yellow': Color(0xFFFACC15),
+      // Warm - Balanced intensities
+      'red': Color(0xFFD32F2F),      // Toned down red
+      'orange': Color(0xFFE5470F),   // Orange-red from image
+      'amber': Color(0xFFEEA429),    // Warm amber from image
+      'yellow': Color(0xFFEEE11D),   // Bright yellow from image
 
-      // Greens (Fresh & Pop)
-      'lime': Color(0xFFA3E635),
-      'green': Color(0xFF4ADE80),
-      'emerald': Color(0xFF34D399),
-      'teal': Color(0xFF2DD4BF),
+      // Greens (Darker and more balanced)
+      'lime': Color(0xFF9E9D24),
+      'green': Color(0xFF43A047),
+      'emerald': Color(0xFF00897B),
+      'teal': Color(0xFF00838F),
 
-      // Cool (Calm but Vibrant)
-      'cyan': Color(0xFF22D3EE),
-      'sky': Color(0xFF38BDF8),
-      'blue': Color(0xFF60A5FA),
-      'indigo': Color(0xFF818CF8),
+      // Cool - Based on image colors
+      'cyan': Color(0xFF00BCD4),
+      'sky': Color(0xFF29B6F6),
+      'blue': Color(0xFF2F86C0),     // Blue from image
+      'indigo': Color(0xFF4E2B83),   // Deep purple/indigo from image
 
-      // Purple / Pink (Soft Neon)
-      'violet': Color(0xFFA78BFA),
-      'purple': Color(0xFFC084FC),
-      'fuchsia': Color(0xFFE879F9),
-      'pink': Color(0xFFF472B6),
-      'rose': Color(0xFFFB7185),
+      // Purple / Pink - Based on image colors
+      'violet': Color(0xFF7E57C2),   // Coordinated violet
+      'purple': Color(0xFFC41A74),   // Magenta/purple from image
+      'fuchsia': Color(0xFFF11511),  // Red-pink from image
+      'pink': Color(0xFFECA2C1),     // Soft pink from image
+      'rose': Color(0xFFEC407A),     // Balanced rose
     };
 
-    return colors[colorName.toLowerCase()] ?? const Color(0xFF60A5FA);
+    return colors[colorName.toLowerCase()] ?? const Color(0xFF2F86C0);
   }
 
   Widget _buildAuxiliaryList(List<Auxiliary> auxiliaries) {
@@ -1150,27 +1149,32 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
 
   Future<void> _handleConfirm() async {
     if (_selectedAux == null) return;
+    final userInfo = await ApiController.instance.loadUserInfo();
 
-    if (_selectedAux!['main'] == "OT") {
-      final result = await ApiController.instance.createOvertimeRequest(
-        _selectedAux!['sub'],
-      );
+    if(userInfo!['ot_approval'] == true){
+      if (_selectedAux!['main'] == "OT") {
+        final result = await ApiController.instance.createOvertimeRequest(
+          _selectedAux!['sub'],
+        );
 
-      if (result == true) {
-        final colorName = await ApiController.instance.pluckAuxiliaryColor(
-          _selectedAux!['main'],
-        );
-        setState(() {
-          _badgeColor = _getColorFromString(colorName);
-          _hasOvertimeRequest = true;
-        });
-      } else {
-        CustomNotification.error(
-          "Failed to request OT. Check if theres pending OT request.",
-        );
+        if (result == true) {
+          final colorName = await ApiController.instance.pluckAuxiliaryColor(
+            _selectedAux!['main'],
+          );
+          setState(() {
+            _badgeColor = _getColorFromString(colorName);
+            _hasOvertimeRequest = true;
+          });
+        } else {
+          CustomNotification.error(
+            "Failed to request OT. Check if theres pending OT request.",
+          );
+        }
+        return;
       }
-      return;
     }
+
+
 
     // Handle Personal Break with dialog to get reason
     if (_selectedAux!['sub'] == "Personal Break") {
