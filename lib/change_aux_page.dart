@@ -12,9 +12,9 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
-import 'components/auxiliary_item.dart';
 import 'components/custom_title_bar.dart';
 import 'components/date_time_bar.dart';
+import 'components/theme_color.dart';
 import 'helpers/api_controller.dart';
 import 'helpers/idle_service.dart';
 import 'helpers/prototype_logger.dart';
@@ -57,17 +57,17 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
 
   Color _getColorForCurrentTab() {
     final categories = _auxiliariesByCategory.keys.toList();
-
     final currentIndex = _tabController!.index;
 
     if (currentIndex < 0 || currentIndex >= categories.length) {
-      return Colors.blue;
+      return Colors.blue; // Default fallback
     }
 
-    final category = categories[currentIndex];
+    final category = categories[currentIndex]; // Halimbawa: "BREAK"
 
-    // Return the color directly from backend config, or default to blue
-    return _auxiliaryColors[category] ?? Colors.blue;
+    // Gagamit na tayo ng Enum logic para makuha ang RGB
+    // .color ay magbibigay ng Color.fromRGBO(...)
+    return ThemeColorExtension.fromAuxiliaryKey(category).color;
   }
 
   Future<void> _loadAuxiliaryColors() async {
@@ -79,7 +79,8 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
 
       setState(() {
         _auxiliaryColors = colorsMap.map(
-          (key, value) => MapEntry(key, _getColorFromString(value as String)),
+          (key, value) =>
+              MapEntry(key, ThemeColorExtension.fromAuxiliaryKey(value).color),
         );
       });
     }
@@ -130,7 +131,10 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       if (message['event'] == "messageEvent") {
         final data = message['data'];
         final content = data['message'];
-        CustomNotification.warning(content, position: NotificationPosition.bottom);
+        CustomNotification.warning(
+          content,
+          position: NotificationPosition.bottom,
+        );
       }
 
       if (message['event'] == "logoutEmployeeEvent") {
@@ -721,78 +725,39 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
 
   // Color _getColorFromString(String colorName) {
   //   const Map<String, Color> colors = {
-  //     // Neutrals
-  //     'slate': Color(0xFF475569),
-  //     'gray': Color(0xFF4B5563),
-  //     'zinc': Color(0xFF52525B),
-  //     'neutral': Color(0xFF525252),
-  //     'stone': Color(0xFF57534E),
+  //     // Neutrals (Balanced and modern)
+  //     'slate': Color(0xFF78909C),
+  //     'gray': Color(0xFF90A4AE),
+  //     'zinc': Color(0xFF9E9E9E),
+  //     'neutral': Color(0xFFBDBDBD),
+  //     'stone': Color(0xFFBCAAA4),
   //
-  //     // Warm
-  //     'red': Color(0xFFDC2626),
-  //     'orange': Color(0xFFEA580C),
-  //     'amber': Color(0xFFD97706),
-  //     'yellow': Color(0xFFCA8A04),
+  //     // Warm - Balanced intensities
+  //     'red': Color(0xFFD32F2F), // Toned down red
+  //     'orange': Color(0xFFE5470F), // Orange-red from image
+  //     'amber': Color(0xFFEEA429), // Warm amber from image
+  //     'yellow': Color(0xFFEEE11D), // Bright yellow from image
+  //     // Greens (Darker and more balanced)
+  //     'lime': Color(0xFF9E9D24),
+  //     'green': Color(0xFF43A047),
+  //     'emerald': Color(0xFF00897B),
+  //     'teal': Color(0xFF00838F),
   //
-  //     // Greens
-  //     'lime': Color(0xFF65A30D),
-  //     'green': Color(0xFF16A34A),
-  //     'emerald': Color(0xFF059669),
-  //     'teal': Color(0xFF0D9488),
-  //
-  //     // Cool
-  //     'cyan': Color(0xFF0891B2),
-  //     'sky': Color(0xFF0284C7),
-  //     'blue': Color(0xFF2563EB),
-  //     'indigo': Color(0xFF4F46E5),
-  //
-  //     // Purple / Pink
-  //     'violet': Color(0xFF7C3AED),
-  //     'purple': Color(0xFF7E22CE),
-  //     'fuchsia': Color(0xFFC026D3),
-  //     'pink': Color(0xFFDB2777),
-  //     'rose': Color(0xFFE11D48),
+  //     // Cool - Based on image colors
+  //     'cyan': Color(0xFF00BCD4),
+  //     'sky': Color(0xFF29B6F6),
+  //     'blue': Color(0xFF2F86C0), // Blue from image
+  //     'indigo': Color(0xFF4E2B83), // Deep purple/indigo from image
+  //     // Purple / Pink - Based on image colors
+  //     'violet': Color(0xFF7E57C2), // Coordinated violet
+  //     'purple': Color(0xFFC41A74), // Magenta/purple from image
+  //     'fuchsia': Color(0xFFF11511), // Red-pink from image
+  //     'pink': Color(0xFFECA2C1), // Soft pink from image
+  //     'rose': Color(0xFFEC407A), // Balanced rose
   //   };
   //
-  //   return colors[colorName.toLowerCase()] ?? const Color(0xFF2563EB);
+  //   return colors[colorName.toLowerCase()] ?? const Color(0xFF2F86C0);
   // }
-  Color _getColorFromString(String colorName) {
-    const Map<String, Color> colors = {
-      // Neutrals (Balanced and modern)
-      'slate': Color(0xFF78909C),
-      'gray': Color(0xFF90A4AE),
-      'zinc': Color(0xFF9E9E9E),
-      'neutral': Color(0xFFBDBDBD),
-      'stone': Color(0xFFBCAAA4),
-
-      // Warm - Balanced intensities
-      'red': Color(0xFFD32F2F),      // Toned down red
-      'orange': Color(0xFFE5470F),   // Orange-red from image
-      'amber': Color(0xFFEEA429),    // Warm amber from image
-      'yellow': Color(0xFFEEE11D),   // Bright yellow from image
-
-      // Greens (Darker and more balanced)
-      'lime': Color(0xFF9E9D24),
-      'green': Color(0xFF43A047),
-      'emerald': Color(0xFF00897B),
-      'teal': Color(0xFF00838F),
-
-      // Cool - Based on image colors
-      'cyan': Color(0xFF00BCD4),
-      'sky': Color(0xFF29B6F6),
-      'blue': Color(0xFF2F86C0),     // Blue from image
-      'indigo': Color(0xFF4E2B83),   // Deep purple/indigo from image
-
-      // Purple / Pink - Based on image colors
-      'violet': Color(0xFF7E57C2),   // Coordinated violet
-      'purple': Color(0xFFC41A74),   // Magenta/purple from image
-      'fuchsia': Color(0xFFF11511),  // Red-pink from image
-      'pink': Color(0xFFECA2C1),     // Soft pink from image
-      'rose': Color(0xFFEC407A),     // Balanced rose
-    };
-
-    return colors[colorName.toLowerCase()] ?? const Color(0xFF2F86C0);
-  }
 
   Widget _buildAuxiliaryList(List<Auxiliary> auxiliaries) {
     return Padding(
@@ -820,7 +785,9 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                     : Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isSelected ? _badgeColor : Colors.grey.shade400.withValues(alpha: 0.7),
+                  color: isSelected
+                      ? _badgeColor
+                      : Colors.grey.shade400.withValues(alpha: 0.7),
                   width: isSelected ? 2 : 1,
                 ),
               ),
@@ -830,7 +797,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: isSelected ? _badgeColor : Colors.grey.shade700,
-                    fontSize: 13,
+                    fontSize: 11,
                     overflow: TextOverflow.ellipsis,
                     fontWeight: isSelected
                         ? FontWeight.w600
@@ -854,11 +821,8 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     final aux = findAuxiliaryBySub(sub);
 
     if (aux != null) {
-      final auxColor = await ApiController.instance.pluckAuxiliaryColor(
-        aux.main,
-      );
       setState(() {
-        _badgeColor = _getColorFromString(auxColor);
+        _badgeColor = ThemeColorExtension.fromAuxiliaryKey(aux.main).color;
         _selectedAux = {'id': aux.id, 'main': aux.main, 'sub': aux.sub};
       });
     } else {
@@ -1026,12 +990,9 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     } else {
       _startTimer();
       final aux = findAuxiliaryBySub(sub);
-      final auxColor = await ApiController.instance.pluckAuxiliaryColor(
-        aux!.main,
-      );
 
       setState(() {
-        _badgeColor = _getColorFromString(auxColor);
+        _badgeColor = ThemeColorExtension.fromAuxiliaryKey(aux!.main).color;
         _stateAux = sub;
       });
       final userInfo = await ApiController.instance.loadUserInfo();
@@ -1156,18 +1117,17 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     if (_selectedAux == null) return;
     final userInfo = await ApiController.instance.loadUserInfo();
 
-    if(userInfo!['ot_approval'] == true){
+    if (userInfo!['ot_approval'] == true) {
       if (_selectedAux!['main'] == "OT") {
         final result = await ApiController.instance.createOvertimeRequest(
           _selectedAux!['sub'],
         );
 
         if (result == true) {
-          final colorName = await ApiController.instance.pluckAuxiliaryColor(
-            _selectedAux!['main'],
-          );
           setState(() {
-            _badgeColor = _getColorFromString(colorName);
+            _badgeColor = ThemeColorExtension.fromAuxiliaryKey(
+              _selectedAux!['main'],
+            ).color;
             _hasOvertimeRequest = true;
           });
         } else {
@@ -1178,8 +1138,6 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
         return;
       }
     }
-
-
 
     // Handle Personal Break with dialog to get reason
     if (_selectedAux!['sub'] == "Personal Break") {
@@ -1611,7 +1569,9 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       );
 
       setState(() {
-        _badgeColor = _getColorFromString(auxColor);
+        _badgeColor = ThemeColorExtension.fromAuxiliaryKey(
+          _selectedAux!['main'],
+        ).color;
         _stateAux = _selectedAux!['sub'];
       });
       CustomNotification.fromHttpCode(
@@ -1649,10 +1609,8 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
     final response = await ApiController.instance.getLatestEmployeeLog();
     final lastLog = response['aux_sub'];
     final aux = findAuxiliaryBySub(lastLog);
-    final auxColor = await ApiController.instance.pluckAuxiliaryColor(
-      aux!.main,
-    );
-    _badgeColor = _getColorFromString(auxColor);
+
+    _badgeColor = ThemeColorExtension.fromAuxiliaryKey(aux!.main).color;
     if (lastLog == "OFF") {
       CustomNotification.warning(
         "Status: $lastLog. Please update your Aux to continue today's session.",
