@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'components/auxiliary_item.dart';
 import 'components/custom_title_bar.dart';
 import 'components/date_time_bar.dart';
 import 'helpers/api_controller.dart';
@@ -475,6 +476,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                 child: Container(
                                   width: 30,
                                   decoration: BoxDecoration(
+                                    color: Colors.grey.shade100,
                                     borderRadius: const BorderRadius.only(
                                       topLeft: Radius.circular(10),
                                       bottomLeft: Radius.circular(10),
@@ -482,7 +484,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                   ),
                                   child: Icon(
                                     Icons.chevron_left,
-                                    color: Colors.grey.shade600,
+                                    color: Colors.black38,
                                     size: 20,
                                   ),
                                 ),
@@ -523,6 +525,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                 child: Container(
                                   width: 30,
                                   decoration: BoxDecoration(
+                                    color: Colors.grey.shade100,
                                     borderRadius: const BorderRadius.only(
                                       topRight: Radius.circular(10),
                                       bottomRight: Radius.circular(10),
@@ -530,7 +533,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                                   ),
                                   child: Icon(
                                     Icons.chevron_right,
-                                    color: Colors.grey.shade600,
+                                    color: Colors.black38,
                                     size: 20,
                                   ),
                                 ),
@@ -817,7 +820,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                     : Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isSelected ? _badgeColor : Colors.grey.shade300,
+                  color: isSelected ? _badgeColor : Colors.grey.shade400.withValues(alpha: 0.7),
                   width: isSelected ? 2 : 1,
                 ),
               ),
@@ -827,7 +830,8 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: isSelected ? _badgeColor : Colors.grey.shade700,
-                    fontSize: 14,
+                    fontSize: 13,
+                    overflow: TextOverflow.ellipsis,
                     fontWeight: isSelected
                         ? FontWeight.w600
                         : FontWeight.normal,
@@ -870,6 +874,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
 
   Future<void> _initializeApp() async {
     try {
+      print("initializing the app");
       // 1. First, create time in log (this will disable idle detection)
       await _createEmployeeLogTimeIn();
 
@@ -1388,13 +1393,12 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
                     children: [
                       // Title
                       const Text(
-                        'TL or Manager is required for this request.',
+                        'Please contact a Team Lead, Center Manager, or IT to authorize this request.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: Colors.yellow,
-                          fontSize: 14,
+                          color: Colors.orange,
+                          fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
                         ),
                       ),
                       const SizedBox(height: 14),

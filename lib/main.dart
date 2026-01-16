@@ -158,7 +158,7 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Colors.green.shade700, Colors.deepPurple.shade900],
+            colors: [Colors.grey, Colors.black],
           ),
         ),
         child: SafeArea(
@@ -199,35 +199,39 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
                           // Username Field
                           TextFormField(
                             controller: _usernameController,
-                            style: const TextStyle(color: Colors.white),
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 15,
+                            ),
                             decoration: InputDecoration(
                               isDense: true,
-                              labelText: 'Username',
-                              labelStyle: const TextStyle(
-                                color: Colors.white70,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 12,
+                              ),
+                              hintText: 'Username',
+                              hintStyle: const TextStyle(
+                                color: Colors.black45,
                               ),
                               prefixIcon: const Icon(
                                 Icons.person_outline,
-                                color: Colors.white70,
+                                color: Colors.black,
+                                size: 20,
                               ),
                               filled: true,
-                              fillColor: Colors.white.withOpacity(0.1),
+                              fillColor: Colors.white,
+
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide.none,
+                                borderRadius: BorderRadius.circular(6),
+                                borderSide: const BorderSide(color: Colors.black26),
                               ),
                               enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: Colors.white.withOpacity(0.3),
-                                ),
+                                borderRadius: BorderRadius.circular(6),
+                                borderSide: const BorderSide(color: Colors.black26),
                               ),
                               focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                  color: Colors.white,
-                                  width: 2,
-                                ),
+                                borderRadius: BorderRadius.circular(6),
+                                borderSide: const BorderSide(color: Colors.black26),
                               ),
                               errorStyle: const TextStyle(color: Colors.yellow),
                             ),
@@ -237,55 +241,47 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
                               }
                               return null;
                             },
-                          ),
+                          )
+
+                          ,
                           const SizedBox(height: 10),
                           // Password Field
                           TextFormField(
                             controller: _passwordController,
                             obscureText: !_isPasswordVisible,
-                            style: const TextStyle(color: Colors.white),
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 15,
+                            ),
                             decoration: InputDecoration(
                               isDense: true,
-                              labelText: 'Password',
-                              labelStyle: const TextStyle(
-                                color: Colors.white70,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 12,
+                              ),
+                              hintText: 'Password',
+                              hintStyle: const TextStyle(
+                                color: Colors.black45,
                               ),
                               prefixIcon: const Icon(
-                                Icons.lock_outline,
-                                color: Colors.white70,
-                              ),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _isPasswordVisible
-                                      ? Icons.visibility_off
-                                      : Icons.visibility,
-                                  color: Colors.white70,
-                                ),
-                                onPressed: () {
-                                  setState(
-                                    () => _isPasswordVisible =
-                                        !_isPasswordVisible,
-                                  );
-                                },
+                                Icons.lock,
+                                color: Colors.black,
+                                size: 20,
                               ),
                               filled: true,
-                              fillColor: Colors.white.withOpacity(0.1),
+                              fillColor: Colors.white,
+
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide.none,
+                                borderRadius: BorderRadius.circular(6),
+                                borderSide: const BorderSide(color: Colors.black26),
                               ),
                               enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: Colors.white.withOpacity(0.3),
-                                ),
+                                borderRadius: BorderRadius.circular(6),
+                                borderSide: const BorderSide(color: Colors.black26),
                               ),
                               focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                  color: Colors.white,
-                                  width: 2,
-                                ),
+                                borderRadius: BorderRadius.circular(6),
+                                borderSide: const BorderSide(color: Colors.black26),
                               ),
                               errorStyle: const TextStyle(color: Colors.yellow),
                             ),
@@ -301,58 +297,38 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
                           // Login Button
                           SizedBox(
                             width: double.infinity,
-                            height: 38,
+                            height: 45, // Tinaasan ko nang kaunti mula 38 para hindi ma-clip ang text/padding
                             child: ElevatedButton(
                               onPressed: _isLoading ? null : _handleLogin,
-                              style: ButtonStyle(
-                                padding: MaterialStateProperty.all(
-                                  const EdgeInsets.symmetric(
-                                    vertical: 14,
-                                    horizontal: 24,
-                                  ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Color.fromARGB(255, 54, 190, 165), // Pure Teal
+                                disabledBackgroundColor: Colors.teal.shade200, // Light teal kapag loading/disabled
+                                foregroundColor: Colors.white, // White text
+                                elevation: 0, // Tinanggal ang shadow para maging flat
+                                shadowColor: Colors.transparent, // Siguradong walang anino
+                                surfaceTintColor: Colors.transparent, // DITO NATATANGGAL YUNG "GRADIENT" EFFECT
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12), // Ginawa kong 12 para sumunod sa modern UI
                                 ),
-                                shape: MaterialStateProperty.all(
-                                  RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                ),
-                                elevation: MaterialStateProperty.all(6),
-                                backgroundColor:
-                                    MaterialStateProperty.resolveWith<Color>((
-                                      states,
-                                    ) {
-                                      if (states.contains(
-                                        MaterialState.disabled,
-                                      )) {
-                                        return Colors.blue.shade300;
-                                      }
-                                      return Colors.blue.shade900;
-                                    }),
-                                shadowColor: MaterialStateProperty.all(
-                                  Colors.deepPurpleAccent.withOpacity(0.4),
-                                ),
+                                padding: const EdgeInsets.symmetric(vertical: 0), // Center text automatically
                               ),
                               child: _isLoading
                                   ? const SizedBox(
-                                      height: 24,
-                                      width: 24,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 3,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                              Colors.white,
-                                            ),
-                                      ),
-                                    )
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
                                   : const Text(
-                                      'Login',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                        letterSpacing: 1.2,
-                                      ),
-                                    ),
+                                'Login',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.0,
+                                ),
+                              ),
                             ),
                           ),
                         ],
