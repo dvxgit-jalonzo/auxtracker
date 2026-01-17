@@ -1478,9 +1478,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
             final response = await ApiController.instance.createEmployeeLog(
               _selectedAux!['sub'],
             );
-            setState(() {
-              _stateAux = _selectedAux!['sub'];
-            });
+            setSelectedAux(sub: _selectedAux!['sub']);
             CustomNotification.fromHttpCode(response['message']);
             if (response['code'] == "NO_ACTIVE_SCHEDULE") {
               final userInfo = await ApiController.instance.loadUserInfo();
