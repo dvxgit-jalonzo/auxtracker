@@ -57,7 +57,7 @@ class _BootstrapAppState extends State<BootstrapApp> {
           body: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Colors.green.shade700, Colors.deepPurple.shade900],
+                colors: [Colors.grey, Colors.black],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
