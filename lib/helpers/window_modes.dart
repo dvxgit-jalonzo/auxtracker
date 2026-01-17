@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:window_manager/window_manager.dart';
 
 class WindowModes {
-  final Size size = Size(300, 340);
+  final Size size = Size(320, 350);
 
   static Future<void> normal() async {
     await windowManager.ensureInitialized();

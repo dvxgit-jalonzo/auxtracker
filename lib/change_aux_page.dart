@@ -9,6 +9,7 @@ import 'package:auxtrack/helpers/websocket_service.dart';
 import 'package:auxtrack/helpers/window_modes.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -174,590 +175,567 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white, // Clean white background
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(
-                top: 33.0,
-                left: 12,
-                right: 12,
-                bottom: 10,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  FutureBuilder<String>(
-                    future: _name,
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Center(
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.15),
+    return Theme(
+      data: Theme.of(context).copyWith(
+        textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.white, // Clean white background
+        body: SafeArea(
+          child: Stack(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(
+                  top: 33.0,
+                  left: 12,
+                  right: 12,
+                  bottom: 10,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    FutureBuilder<String>(
+                      future: _name,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return Center(
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.15),
+                                ),
+                              ),
+                              child: const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white70,
+                                ),
                               ),
                             ),
-                            child: const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white70,
-                              ),
-                            ),
-                          ),
-                        );
-                      }
+                          );
+                        }
 
-                      return Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.teal.shade600,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: Colors.teal.shade400,
-                            width: 1.5,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black,
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
+                        return Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.teal.shade600,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: Colors.teal.shade400,
+                              width: 1.5,
                             ),
-                          ],
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Name section
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        Colors.yellow.shade900,
-                                        Colors.amber.shade400,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black,
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Name section
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          Colors.yellow.shade900,
+                                          Colors.amber.shade400,
+                                        ],
+                                      ),
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.red.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                          blurRadius: 8,
+                                          spreadRadius: 1,
+                                        ),
                                       ],
                                     ),
-                                    shape: BoxShape.circle,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.red.withValues(
-                                          alpha: 0.5,
-                                        ),
-                                        blurRadius: 8,
-                                        spreadRadius: 1,
-                                      ),
-                                    ],
-                                  ),
-                                  child: Icon(
-                                    Icons.person,
-                                    size: 16,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    snapshot.data?.toUpperCase() ?? "UNKNOWN",
-                                    style: TextStyle(
+                                    child: Icon(
+                                      Icons.person,
+                                      size: 16,
                                       color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                      letterSpacing: 1.2,
                                     ),
-                                    overflow: TextOverflow.ellipsis,
-                                    maxLines: 1,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      snapshot.data?.toUpperCase() ?? "UNKNOWN",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        letterSpacing: 1.2,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 10),
+
+                              // Status and Timer section
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  StatusBadge(
+                                    baseColor: _badgeColor,
+                                    isIdle: _isIdle,
+                                    stateAux: _stateAux,
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.1,
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.2,
+                                        ),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.timer_sharp,
+                                          size: 16,
+                                          color: Colors.white,
+                                        ),
+                                        const SizedBox(width: 5),
+                                        Text(
+                                          _formattedTime,
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: 0.4,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 5),
+                    if (_tabController != null)
+                      Container(
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Listener(
+                                onPointerSignal: (event) {
+                                  if (event is PointerScrollEvent) {
+                                    final scrollOffset = event.scrollDelta.dy;
+
+                                    if (scrollOffset > 0 &&
+                                        _tabController!.index <
+                                            _tabController!.length - 1) {
+                                      _tabController!.animateTo(
+                                        _tabController!.index + 1,
+                                      );
+                                    } else if (scrollOffset < 0 &&
+                                        _tabController!.index > 0) {
+                                      _tabController!.animateTo(
+                                        _tabController!.index - 1,
+                                      );
+                                    }
+                                  }
+                                },
+                                child: AnimatedBuilder(
+                                  animation: _tabController!,
+                                  builder: (context, child) {
+                                    final indicatorColor =
+                                        _getColorForCurrentTab();
+
+                                    return MouseRegion(
+                                      cursor: SystemMouseCursors.click,
+                                      child: Tooltip(
+                                        message: "Scroll to switch tabs",
+                                        showDuration: Duration(seconds: 2),
+                                        preferBelow: false,
+                                        child: TabBar(
+                                          controller: _tabController,
+                                          isScrollable: true,
+                                          tabAlignment: TabAlignment.start,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 3,
+                                            vertical: 3,
+                                          ),
+                                          indicatorSize:
+                                              TabBarIndicatorSize.tab,
+                                          dividerColor: Colors.transparent,
+                                          indicator: BoxDecoration(
+                                            color: indicatorColor,
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: indicatorColor
+                                                    .withValues(alpha: 0.3),
+                                                blurRadius: 6,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ],
+                                          ),
+                                          labelColor: Colors.white,
+                                          unselectedLabelColor:
+                                              Colors.grey.shade600,
+                                          labelStyle: const TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: 0.3,
+                                          ),
+                                          unselectedLabelStyle: const TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w500,
+                                            letterSpacing: 0.2,
+                                          ),
+                                          tabs: _auxiliariesByCategory.keys.map((
+                                            category,
+                                          ) {
+                                            return Tab(
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 12,
+                                                      vertical: 6,
+                                                    ),
+                                                child: Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    Icon(
+                                                      _getCategoryIcon(
+                                                        category,
+                                                      ),
+                                                      size: 14,
+                                                    ),
+                                                    const SizedBox(width: 5),
+                                                    Text(category),
+                                                  ],
+                                                ),
+                                              ),
+                                            );
+                                          }).toList(),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                            // Left arrow indicator
+                            if (_tabController!.index > 0)
+                              Positioned(
+                                left: 0,
+                                top: 0,
+                                bottom: 0,
+                                child: GestureDetector(
+                                  onTap: _isAnimating
+                                      ? null
+                                      : () async {
+                                          if (_tabController!.index > 0 &&
+                                              !_isAnimating) {
+                                            setState(() => _isAnimating = true);
+
+                                            _tabController!.animateTo(
+                                              _tabController!.index - 1,
+                                            );
+
+                                            await Future.delayed(
+                                              const Duration(milliseconds: 300),
+                                            );
+
+                                            if (mounted) {
+                                              setState(
+                                                () => _isAnimating = false,
+                                              );
+                                            }
+                                          }
+                                        },
+                                  child: Container(
+                                    width: 30,
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade100,
+                                      borderRadius: const BorderRadius.only(
+                                        topLeft: Radius.circular(10),
+                                        bottomLeft: Radius.circular(10),
+                                      ),
+                                    ),
+                                    child: Icon(
+                                      Icons.chevron_left,
+                                      color: Colors.black38,
+                                      size: 20,
+                                    ),
                                   ),
                                 ),
-                              ],
+                              ),
+
+                            // Right arrow
+                            if (_tabController!.index <
+                                _tabController!.length - 1)
+                              Positioned(
+                                right: 0,
+                                top: 0,
+                                bottom: 0,
+                                child: GestureDetector(
+                                  onTap: _isAnimating
+                                      ? null
+                                      : () async {
+                                          if (_tabController!.index <
+                                                  _tabController!.length - 1 &&
+                                              !_isAnimating) {
+                                            setState(() => _isAnimating = true);
+
+                                            _tabController!.animateTo(
+                                              _tabController!.index + 1,
+                                            );
+
+                                            await Future.delayed(
+                                              const Duration(milliseconds: 300),
+                                            );
+
+                                            if (mounted) {
+                                              setState(
+                                                () => _isAnimating = false,
+                                              );
+                                            }
+                                          }
+                                        },
+                                  child: Container(
+                                    width: 30,
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade100,
+                                      borderRadius: const BorderRadius.only(
+                                        topRight: Radius.circular(10),
+                                        bottomRight: Radius.circular(10),
+                                      ),
+                                    ),
+                                    child: Icon(
+                                      Icons.chevron_right,
+                                      color: Colors.black38,
+                                      size: 20,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+
+                    const SizedBox(height: 5),
+                    Expanded(
+                      child: _tabController == null
+                          ? Center(
+                              child: Text(
+                                'No auxiliaries available',
+                                style: TextStyle(
+                                  color: Colors.grey.shade600,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            )
+                          : Container(
+                              padding: EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.grey.shade200),
+                              ),
+                              child: TabBarView(
+                                controller: _tabController,
+                                children: _auxiliariesByCategory.entries
+                                    .map(
+                                      (entry) =>
+                                          _buildAuxiliaryList(entry.value),
+                                    )
+                                    .toList(),
+                              ),
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: CustomTitleBar(titleWidget: DateTimeBar()),
+              ),
+              if (_hasPersonalBreakRequest) ...[
+                Positioned(
+                  bottom: 10,
+                  left: 12,
+                  right: 12,
+                  child: Material(
+                    elevation: 6,
+                    borderRadius: BorderRadius.circular(14),
+                    color: Colors.white,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.timelapse_rounded,
+                              color: Colors.grey.shade700,
+                              size: 20,
                             ),
 
-                            const SizedBox(height: 10),
+                            const SizedBox(width: 12),
 
-                            // Status and Timer section
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                StatusBadge(
-                                  baseColor: _badgeColor,
-                                  isIdle: _isIdle,
-                                  stateAux: _stateAux,
+                            Expanded(
+                              child: Text(
+                                "Break request in progress",
+                                style: TextStyle(
+                                  color: Colors.grey.shade800,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
                                 ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.2,
-                                      ),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.timer_sharp,
-                                        size: 16,
-                                        color: Colors.white,
-                                      ),
-                                      const SizedBox(width: 5),
-                                      Text(
-                                        _formattedTime,
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                          letterSpacing: 0.4,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                              ),
+                            ),
+
+                            TextButton(
+                              onPressed: () async {
+                                final status = await ApiController.instance
+                                    .deletePersonalBreak();
+                                setState(() {
+                                  _hasPersonalBreakRequest = false;
+                                });
+                              },
+                              child: const Text(
+                                "CANCEL",
+                                style: TextStyle(
+                                  color: Colors.redAccent,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
                                 ),
-                              ],
+                              ),
                             ),
                           ],
                         ),
-                      );
-                    },
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 5),
-                  if (_tabController != null)
-                    Container(
-                      height: 42,
+                ),
+              ],
+              if (_hasOvertimeRequest) ...[
+                Positioned(
+                  bottom: 10,
+                  left: 12,
+                  right: 12,
+                  child: Material(
+                    elevation: 6,
+                    borderRadius: BorderRadius.circular(14),
+                    color: Colors.white,
+                    child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(14),
                         border: Border.all(color: Colors.grey.shade300),
                       ),
-                      child: Stack(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: Listener(
-                              onPointerSignal: (event) {
-                                if (event is PointerScrollEvent) {
-                                  final scrollOffset = event.scrollDelta.dy;
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.timelapse_rounded,
+                              color: Colors.grey.shade700,
+                              size: 20,
+                            ),
 
-                                  if (scrollOffset > 0 &&
-                                      _tabController!.index <
-                                          _tabController!.length - 1) {
-                                    _tabController!.animateTo(
-                                      _tabController!.index + 1,
-                                    );
-                                  } else if (scrollOffset < 0 &&
-                                      _tabController!.index > 0) {
-                                    _tabController!.animateTo(
-                                      _tabController!.index - 1,
-                                    );
-                                  }
+                            const SizedBox(width: 12),
+
+                            Expanded(
+                              child: Text(
+                                "OT request in progress",
+                                style: TextStyle(
+                                  color: Colors.grey.shade800,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+
+                            TextButton(
+                              onPressed: () async {
+                                final result = await ApiController.instance
+                                    .deleteOvertime();
+                                if (result == true) {
+                                  setSelectedAux();
                                 }
+                                setState(() {
+                                  _hasOvertimeRequest = false;
+                                });
+                                return;
                               },
-                              child: AnimatedBuilder(
-                                animation: _tabController!,
-                                builder: (context, child) {
-                                  final indicatorColor =
-                                      _getColorForCurrentTab();
-
-                                  return MouseRegion(
-                                    cursor: SystemMouseCursors.click,
-                                    child: Tooltip(
-                                      message: "Scroll to switch tabs",
-                                      showDuration: Duration(seconds: 2),
-                                      preferBelow: false,
-                                      child: TabBar(
-                                        controller: _tabController,
-                                        isScrollable: true,
-                                        tabAlignment: TabAlignment.start,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 3,
-                                          vertical: 3,
-                                        ),
-                                        indicatorSize: TabBarIndicatorSize.tab,
-                                        dividerColor: Colors.transparent,
-                                        indicator: BoxDecoration(
-                                          color: indicatorColor,
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: indicatorColor.withValues(
-                                                alpha: 0.3,
-                                              ),
-                                              blurRadius: 6,
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ],
-                                        ),
-                                        labelColor: Colors.white,
-                                        unselectedLabelColor:
-                                            Colors.grey.shade600,
-                                        labelStyle: const TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                          letterSpacing: 0.3,
-                                        ),
-                                        unselectedLabelStyle: const TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w500,
-                                          letterSpacing: 0.2,
-                                        ),
-                                        tabs: _auxiliariesByCategory.keys.map((
-                                          category,
-                                        ) {
-                                          return Tab(
-                                            child: Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 12,
-                                                    vertical: 6,
-                                                  ),
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Icon(
-                                                    _getCategoryIcon(category),
-                                                    size: 14,
-                                                  ),
-                                                  const SizedBox(width: 5),
-                                                  Text(category),
-                                                ],
-                                              ),
-                                            ),
-                                          );
-                                        }).toList(),
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                          // Left arrow indicator
-                          if (_tabController!.index > 0)
-                            Positioned(
-                              left: 0,
-                              top: 0,
-                              bottom: 0,
-                              child: GestureDetector(
-                                onTap: _isAnimating
-                                    ? null
-                                    : () async {
-                                        if (_tabController!.index > 0 &&
-                                            !_isAnimating) {
-                                          setState(() => _isAnimating = true);
-
-                                          _tabController!.animateTo(
-                                            _tabController!.index - 1,
-                                          );
-
-                                          await Future.delayed(
-                                            const Duration(milliseconds: 300),
-                                          );
-
-                                          if (mounted) {
-                                            setState(
-                                              () => _isAnimating = false,
-                                            );
-                                          }
-                                        }
-                                      },
-                                child: Container(
-                                  width: 30,
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade100,
-                                    borderRadius: const BorderRadius.only(
-                                      topLeft: Radius.circular(10),
-                                      bottomLeft: Radius.circular(10),
-                                    ),
-                                  ),
-                                  child: Icon(
-                                    Icons.chevron_left,
-                                    color: Colors.black38,
-                                    size: 20,
-                                  ),
+                              child: const Text(
+                                "CANCEL",
+                                style: TextStyle(
+                                  color: Colors.redAccent,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
                                 ),
                               ),
                             ),
-
-                          // Right arrow
-                          if (_tabController!.index <
-                              _tabController!.length - 1)
-                            Positioned(
-                              right: 0,
-                              top: 0,
-                              bottom: 0,
-                              child: GestureDetector(
-                                onTap: _isAnimating
-                                    ? null
-                                    : () async {
-                                        if (_tabController!.index <
-                                                _tabController!.length - 1 &&
-                                            !_isAnimating) {
-                                          setState(() => _isAnimating = true);
-
-                                          _tabController!.animateTo(
-                                            _tabController!.index + 1,
-                                          );
-
-                                          await Future.delayed(
-                                            const Duration(milliseconds: 300),
-                                          );
-
-                                          if (mounted) {
-                                            setState(
-                                              () => _isAnimating = false,
-                                            );
-                                          }
-                                        }
-                                      },
-                                child: Container(
-                                  width: 30,
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade100,
-                                    borderRadius: const BorderRadius.only(
-                                      topRight: Radius.circular(10),
-                                      bottomRight: Radius.circular(10),
-                                    ),
-                                  ),
-                                  child: Icon(
-                                    Icons.chevron_right,
-                                    color: Colors.black38,
-                                    size: 20,
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-
-                  const SizedBox(height: 5),
-                  Expanded(
-                    child: _tabController == null
-                        ? Center(
-                            child: Text(
-                              'No auxiliaries available',
-                              style: TextStyle(
-                                color: Colors.grey.shade600,
-                                fontSize: 12,
-                              ),
-                            ),
-                          )
-                        : Container(
-                            padding: EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade50,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.grey.shade200),
-                            ),
-                            child: TabBarView(
-                              controller: _tabController,
-                              children: _auxiliariesByCategory.entries
-                                  .map(
-                                    (entry) => _buildAuxiliaryList(entry.value),
-                                  )
-                                  .toList(),
-                            ),
-                          ),
-                  ),
-                ],
-              ),
-            ),
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: CustomTitleBar(titleWidget: DateTimeBar()),
-            ),
-            if (_hasPersonalBreakRequest) ...[
-              Positioned(
-                bottom: 10,
-                left: 12,
-                right: 12,
-                child: Material(
-                  elevation: 6,
-                  borderRadius: BorderRadius.circular(14),
-                  color: Colors.white,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.timelapse_rounded,
-                            color: Colors.grey.shade700,
-                            size: 20,
-                          ),
-
-                          const SizedBox(width: 12),
-
-                          Expanded(
-                            child: Text(
-                              "Break request in progress",
-                              style: TextStyle(
-                                color: Colors.grey.shade800,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-
-                          TextButton(
-                            onPressed: () async {
-                              final status = await ApiController.instance
-                                  .deletePersonalBreak();
-                              setState(() {
-                                _hasPersonalBreakRequest = false;
-                              });
-                            },
-                            child: const Text(
-                              "CANCEL",
-                              style: TextStyle(
-                                color: Colors.redAccent,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ],
-            if (_hasOvertimeRequest) ...[
-              Positioned(
-                bottom: 10,
-                left: 12,
-                right: 12,
-                child: Material(
-                  elevation: 6,
-                  borderRadius: BorderRadius.circular(14),
-                  color: Colors.white,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.timelapse_rounded,
-                            color: Colors.grey.shade700,
-                            size: 20,
-                          ),
-
-                          const SizedBox(width: 12),
-
-                          Expanded(
-                            child: Text(
-                              "OT request in progress",
-                              style: TextStyle(
-                                color: Colors.grey.shade800,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-
-                          TextButton(
-                            onPressed: () async {
-                              final result = await ApiController.instance
-                                  .deleteOvertime();
-                              if (result == true) {
-                                setSelectedAux();
-                              }
-                              setState(() {
-                                _hasOvertimeRequest = false;
-                              });
-                              return;
-                            },
-                            child: const Text(
-                              "CANCEL",
-                              style: TextStyle(
-                                color: Colors.redAccent,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ],
+          ),
         ),
       ),
     );
   }
-
-  // Color _getColorFromString(String colorName) {
-  //   const Map<String, Color> colors = {
-  //     // Neutrals (Balanced and modern)
-  //     'slate': Color(0xFF78909C),
-  //     'gray': Color(0xFF90A4AE),
-  //     'zinc': Color(0xFF9E9E9E),
-  //     'neutral': Color(0xFFBDBDBD),
-  //     'stone': Color(0xFFBCAAA4),
-  //
-  //     // Warm - Balanced intensities
-  //     'red': Color(0xFFD32F2F), // Toned down red
-  //     'orange': Color(0xFFE5470F), // Orange-red from image
-  //     'amber': Color(0xFFEEA429), // Warm amber from image
-  //     'yellow': Color(0xFFEEE11D), // Bright yellow from image
-  //     // Greens (Darker and more balanced)
-  //     'lime': Color(0xFF9E9D24),
-  //     'green': Color(0xFF43A047),
-  //     'emerald': Color(0xFF00897B),
-  //     'teal': Color(0xFF00838F),
-  //
-  //     // Cool - Based on image colors
-  //     'cyan': Color(0xFF00BCD4),
-  //     'sky': Color(0xFF29B6F6),
-  //     'blue': Color(0xFF2F86C0), // Blue from image
-  //     'indigo': Color(0xFF4E2B83), // Deep purple/indigo from image
-  //     // Purple / Pink - Based on image colors
-  //     'violet': Color(0xFF7E57C2), // Coordinated violet
-  //     'purple': Color(0xFFC41A74), // Magenta/purple from image
-  //     'fuchsia': Color(0xFFF11511), // Red-pink from image
-  //     'pink': Color(0xFFECA2C1), // Soft pink from image
-  //     'rose': Color(0xFFEC407A), // Balanced rose
-  //   };
-  //
-  //   return colors[colorName.toLowerCase()] ?? const Color(0xFF2F86C0);
-  // }
 
   Widget _buildAuxiliaryList(List<Auxiliary> auxiliaries) {
     return Padding(
@@ -1305,9 +1283,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
           }
         }
       }
-      setState(() {
-        _selectedAux = null;
-      });
+      setSelectedAux();
       return; // Exit early for Personal Break
     }
     if (_selectedAux!['sub'] == "Troubleshooting") {
@@ -1538,13 +1514,9 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
         }
       } else if (confirmResult == "false") {
         CustomNotification.error("Credentials incorrect.");
-        setState(() {
-          _selectedAux = null;
-        });
+        setSelectedAux();
       } else {
-        setState(() {
-          _selectedAux = null;
-        });
+        setSelectedAux();
       }
       return; // Exit early for Personal Break
     }
@@ -1612,6 +1584,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
 
     _badgeColor = ThemeColorExtension.fromAuxiliaryKey(aux!.main).color;
     if (lastLog == "OFF") {
+      setSelectedAux();
       CustomNotification.warning(
         "Status: $lastLog. Please update your Aux to continue today's session.",
       );

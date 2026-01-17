@@ -4,6 +4,7 @@ import 'package:auxtrack/helpers/custom_notification.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_single_instance/flutter_single_instance.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
@@ -68,6 +69,10 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
+      ),
       home: const LoginPage(),
     );
   }
@@ -210,9 +215,7 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
                                 vertical: 12,
                               ),
                               hintText: 'Username',
-                              hintStyle: const TextStyle(
-                                color: Colors.black45,
-                              ),
+                              hintStyle: const TextStyle(color: Colors.black45),
                               prefixIcon: const Icon(
                                 Icons.person_outline,
                                 color: Colors.black,
@@ -223,15 +226,21 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
 
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(6),
-                                borderSide: const BorderSide(color: Colors.black26),
+                                borderSide: const BorderSide(
+                                  color: Colors.black26,
+                                ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(6),
-                                borderSide: const BorderSide(color: Colors.black26),
+                                borderSide: const BorderSide(
+                                  color: Colors.black26,
+                                ),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(6),
-                                borderSide: const BorderSide(color: Colors.black26),
+                                borderSide: const BorderSide(
+                                  color: Colors.black26,
+                                ),
                               ),
                               errorStyle: const TextStyle(color: Colors.yellow),
                             ),
@@ -241,9 +250,7 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
                               }
                               return null;
                             },
-                          )
-
-                          ,
+                          ),
                           const SizedBox(height: 10),
                           // Password Field
                           TextFormField(
@@ -260,9 +267,7 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
                                 vertical: 12,
                               ),
                               hintText: 'Password',
-                              hintStyle: const TextStyle(
-                                color: Colors.black45,
-                              ),
+                              hintStyle: const TextStyle(color: Colors.black45),
                               prefixIcon: const Icon(
                                 Icons.lock,
                                 color: Colors.black,
@@ -273,15 +278,21 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
 
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(6),
-                                borderSide: const BorderSide(color: Colors.black26),
+                                borderSide: const BorderSide(
+                                  color: Colors.black26,
+                                ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(6),
-                                borderSide: const BorderSide(color: Colors.black26),
+                                borderSide: const BorderSide(
+                                  color: Colors.black26,
+                                ),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(6),
-                                borderSide: const BorderSide(color: Colors.black26),
+                                borderSide: const BorderSide(
+                                  color: Colors.black26,
+                                ),
                               ),
                               errorStyle: const TextStyle(color: Colors.yellow),
                             ),
@@ -297,38 +308,56 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
                           // Login Button
                           SizedBox(
                             width: double.infinity,
-                            height: 45, // Tinaasan ko nang kaunti mula 38 para hindi ma-clip ang text/padding
+                            height:
+                                45, // Tinaasan ko nang kaunti mula 38 para hindi ma-clip ang text/padding
                             child: ElevatedButton(
                               onPressed: _isLoading ? null : _handleLogin,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Color.fromARGB(255, 54, 190, 165), // Pure Teal
-                                disabledBackgroundColor: Colors.teal.shade200, // Light teal kapag loading/disabled
+                                backgroundColor: Color.fromARGB(
+                                  255,
+                                  54,
+                                  190,
+                                  165,
+                                ), // Pure Teal
+                                disabledBackgroundColor: Colors
+                                    .teal
+                                    .shade200, // Light teal kapag loading/disabled
                                 foregroundColor: Colors.white, // White text
-                                elevation: 0, // Tinanggal ang shadow para maging flat
-                                shadowColor: Colors.transparent, // Siguradong walang anino
-                                surfaceTintColor: Colors.transparent, // DITO NATATANGGAL YUNG "GRADIENT" EFFECT
+                                elevation:
+                                    0, // Tinanggal ang shadow para maging flat
+                                shadowColor: Colors
+                                    .transparent, // Siguradong walang anino
+                                surfaceTintColor: Colors
+                                    .transparent, // DITO NATATANGGAL YUNG "GRADIENT" EFFECT
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12), // Ginawa kong 12 para sumunod sa modern UI
+                                  borderRadius: BorderRadius.circular(
+                                    12,
+                                  ), // Ginawa kong 12 para sumunod sa modern UI
                                 ),
-                                padding: const EdgeInsets.symmetric(vertical: 0), // Center text automatically
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 0,
+                                ), // Center text automatically
                               ),
                               child: _isLoading
                                   ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                ),
-                              )
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Colors.white,
+                                            ),
+                                      ),
+                                    )
                                   : const Text(
-                                'Login',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.0,
-                                ),
-                              ),
+                                      'Login',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.0,
+                                      ),
+                                    ),
                             ),
                           ),
                         ],
