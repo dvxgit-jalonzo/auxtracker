@@ -66,7 +66,7 @@ extension ThemeColorExtension on ThemeColor {
       case "LOG ON":
         return ThemeColor.warmPastel;
       default:
-        return ThemeColor.bermuda;
+        return ThemeColor.puertoRico;
     }
   }
 }

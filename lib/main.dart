@@ -149,7 +149,7 @@ class _LoginPageState extends State<LoginPage> with WindowListener {
       } catch (e) {
         setState(() => _isLoading = false);
         if (mounted) {
-          CustomNotification.error(e.toString());
+          CustomNotification.warning(e.toString());
         }
       }
     }

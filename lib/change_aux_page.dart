@@ -66,9 +66,11 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
 
     final category = categories[currentIndex]; // Halimbawa: "BREAK"
 
-    // Gagamit na tayo ng Enum logic para makuha ang RGB
-    // .color ay magbibigay ng Color.fromRGBO(...)
-    return ThemeColorExtension.fromAuxiliaryKey(category).color;
+    if (category == "LOG ON") {
+      return ThemeColorExtension.fromAuxiliaryKey("CUSTOM").color;
+    } else {
+      return ThemeColorExtension.fromAuxiliaryKey(category).color;
+    }
   }
 
   Future<void> _loadAuxiliaryColors() async {
@@ -826,7 +828,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       // 3. Listen to config changes
       _listenToIdleConfig();
     } catch (e) {
-      CustomNotification.error(e.toString());
+      CustomNotification.warning(e.toString());
     }
   }
 
@@ -1064,7 +1066,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
       }
     } catch (e) {
       if (mounted) {
-        CustomNotification.error("Logout Error");
+        CustomNotification.warning("Logout Error");
         await ApiController.instance.forceLogout();
       }
     }
@@ -1109,7 +1111,7 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
             _hasOvertimeRequest = true;
           });
         } else {
-          CustomNotification.error(
+          CustomNotification.warning(
             "Failed to request OT. Check if theres pending OT request.",
           );
         }
@@ -1274,12 +1276,12 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
               });
               CustomNotification.fromHttpCode(message);
             } else {
-              CustomNotification.error("Failed to request Personal Break");
+              CustomNotification.warning("Failed to request Personal Break");
             }
           }
         } catch (e) {
           if (mounted) {
-            CustomNotification.error("Failed to request Personal Break");
+            CustomNotification.warning("Failed to request Personal Break");
           }
         }
       }
@@ -1502,16 +1504,16 @@ class _ChangeAuxPageState extends State<ChangeAuxPage>
             if (response['code'] != "DUPLICATE_AUX") _startTimer();
           } else {
             if (mounted) {
-              CustomNotification.error("Failed to request OT");
+              CustomNotification.warning("Failed to request OT");
             }
           }
         } catch (e) {
           if (mounted) {
-            CustomNotification.error("Failed to request OT");
+            CustomNotification.warning("Failed to request OT");
           }
         }
       } else if (confirmResult == "false") {
-        CustomNotification.error("Credentials incorrect.");
+        CustomNotification.warning("Credentials incorrect.");
         setSelectedAux();
       } else {
         setSelectedAux();

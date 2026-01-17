@@ -303,7 +303,7 @@ class ApiController {
 
       return result;
     } catch (e) {
-      CustomNotification.error("Error getting last aux");
+      CustomNotification.warning("Error getting last aux");
     }
   }
 
@@ -328,7 +328,7 @@ class ApiController {
     //
     final result = jsonDecode(response.body);
 
-    if(response.statusCode == 200){
+    if (response.statusCode == 200) {
       await _saveAuxiliaryColors(result);
     }
     print("colors : $result");
@@ -350,6 +350,7 @@ class ApiController {
       return 'grey';
     }
   }
+
   Future<bool> deletePersonalBreak() async {
     try {
       final baseUrl = await Configuration.instance.get("baseUrl");
@@ -392,7 +393,7 @@ class ApiController {
         return false;
       }
     } catch (e) {
-      CustomNotification.error("Error deleting personal break");
+      CustomNotification.warning("Error deleting personal break");
       await forceLogout();
       return false;
     }
@@ -412,9 +413,7 @@ class ApiController {
       final employeeId = userInfo['id'];
       final url = Uri.parse('$baseUrl/gracefully/logout');
 
-      Map<String, dynamic> params = {
-        "employee_id": employeeId,
-      };
+      Map<String, dynamic> params = {"employee_id": employeeId};
 
       final response = await http.post(
         url,
@@ -434,7 +433,6 @@ class ApiController {
       return false;
     }
   }
-
 
   Future<bool> deleteOvertime() async {
     try {
@@ -478,7 +476,7 @@ class ApiController {
         return false;
       }
     } catch (e) {
-      CustomNotification.error("Error deleting overtime");
+      CustomNotification.warning("Error deleting overtime");
       await forceLogout();
       return false;
     }
@@ -523,7 +521,7 @@ class ApiController {
         return false;
       }
     } catch (e) {
-      CustomNotification.error("Error creating personal break");
+      CustomNotification.warning("Error creating personal break");
       await forceLogout();
       return false;
     }
@@ -569,7 +567,7 @@ class ApiController {
         return false;
       }
     } catch (e) {
-      CustomNotification.error("Error creating personal break");
+      CustomNotification.warning("Error creating personal break");
       await forceLogout();
       return false;
     }
@@ -616,7 +614,9 @@ class ApiController {
   }
 
   /// Save auxiliaryColors info to SharedPreferences
-  Future<void> _saveAuxiliaryColors(Map<String, dynamic> auxiliaryColors) async {
+  Future<void> _saveAuxiliaryColors(
+    Map<String, dynamic> auxiliaryColors,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('auxiliaryColors', jsonEncode(auxiliaryColors));
   }
@@ -664,11 +664,7 @@ class ApiController {
     final prefsFile = File('${dir.path}\\shared_preferences.json');
 
     if (await prefsFile.exists()) {
-      await Process.run(
-        'attrib',
-        ['+h', prefsFile.path],
-        runInShell: true,
-      );
+      await Process.run('attrib', ['+h', prefsFile.path], runInShell: true);
     }
   }
 
